@@ -1,0 +1,31 @@
+cmake_minimum_required(VERSION 3.16)
+
+project(UltraBilard LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+include(FetchContent)
+
+# To jest ta część, która "zastępuje" ręczne pobieranie.
+# CMake sam połączy się z serwerami SFML i pobierze właściwą wersję.
+FetchContent_Declare(
+    SFML
+    GIT_REPOSITORY https://github.com/SFML/SFML.git
+    GIT_TAG 2.6.1
+)
+FetchContent_MakeAvailable(SFML)
+
+add_executable(UltraBilard main.cpp)
+
+target_link_libraries(UltraBilard PRIVATE sfml-graphics sfml-window sfml-system)
+
+include(GNUInstallDirs)
+install(TARGETS UltraBilard
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+
+
+
