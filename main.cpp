@@ -27,6 +27,7 @@ class BilardBall : public sf::CircleShape
 {
 public:
     bool Held = false;
+    int identifier;
     sf::Vector3i velocity;
     sf::IntRect bounds;
     BilardBall(float radius, const sf::Vector2f& position):
@@ -86,9 +87,11 @@ int main()
         float radi = 8*(float(virtualScreen.getSize().x)/window.getSize().x);
         sf::Vector2f position(pozycjebazoweX[i]*(float(virtualScreen.getSize().x)/window.getSize().x),pozycjebazoweY[i]*(float(virtualScreen.getSize().y)/window.getSize().y));
         Kule.emplace_back(BilardBall(radi, position));
+        Kule[i].identifier = i;
     }
 
-
+    int lastHeldBall = -1;;
+    bool isLeftPressed = false;
     sf::Clock clock;
     while (window.isOpen()) {
         sf::Time elapsed = clock.restart();
@@ -104,7 +107,18 @@ int main()
                 window.setView(sf::View(sf::FloatRect(0, 0, event.size.width, event.size.height)));
             }
             if (event.type == sf::Event::MouseButtonPressed) {
-                if(event.mouseButton.button == sf::Mouse::Left) {
+                if (event.mouseButton.button == sf::Mouse::Left) {
+                    isLeftPressed = true;
+                }
+            }
+            if (event.type == sf::Event::MouseButtonReleased) {
+                if (event.mouseButton.button == sf::Mouse::Left) {
+                    isLeftPressed = false;
+                    lastHeldBall = -1;
+                }
+            }
+            if (event.type == sf::Event::MouseMoved) {
+                if(isLeftPressed) {
                     sf::Vector2i mouse_pos = sf::Mouse::getPosition(window);
                     sf::Vector2f p = window.mapPixelToCoords(mouse_pos, virtualScreen.getView());
                     std::cout << "Mouse clicked: " << p.x << ", " << p.y << std::endl;
@@ -114,6 +128,7 @@ int main()
                         if( square(bal.getPosition().x - p.x) + square(bal.getPosition().y - p.y) < square(bal.getRadius()) )
                         {
                             bal.Held = true;
+                            lastHeldBall = bal.identifier;
                         }
                         else
                             bal.Held = false;
