@@ -3,6 +3,15 @@
 #include <SFML/Graphics.hpp>
 using namespace std;
 
+sf::Texture ZaladujTekstureTla()
+{
+    sf::Texture tlo_stolu;
+    if (!tlo_stolu.loadFromFile("assets//stol_tlo.png")) {
+        std::cout << "Blad: Nie znaleziono pliku tlo.png!" << std::endl;
+    }
+
+    return tlo_stolu;
+}
 
 class BilardBall : public sf::CircleShape
 {
@@ -21,7 +30,11 @@ public:
 
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode(640, 360), "My window");
+    sf::RenderWindow window(sf::VideoMode(640, 360), "Okno Gry");
+
+
+    sf::Sprite tlo;
+    tlo.setTexture(ZaladujTekstureTla());
 
     sf::Clock clock;
     while (window.isOpen()) {
