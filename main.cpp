@@ -47,7 +47,7 @@ int main()
 
     // Przygotowanie stylizowanego ekranu:
     sf::RenderTexture virtualScreen;
-    virtualScreen.create(640, 360);
+    virtualScreen.create(128,72);
     virtualScreen.setSmooth(false);
 
     // Importowanie tła:
@@ -71,6 +71,17 @@ int main()
     float scaleYsciany = (float)virtualScreen.getSize().y / sciany_stol.getSize().y;
     sciany.setScale(scaleXsciany, scaleYsciany);
 
+    // Stworzenie kul
+    vector <float> pozycjeX = {320,164,164,164,164,164};
+    vector <float> pozycjeY = {180,90,270,180,135,225};
+    vector<BilardBall> Kule;
+    for (int i=0; i<6; i++) {
+        float radi = 3;
+        sf::Vector2f position(pozycjeX[i]*(128.f/640.f),pozycjeY[i]*(72.f/360.f));
+        Kule.emplace_back(BilardBall(radi, position));
+    }
+
+
     sf::Clock clock;
     while (window.isOpen()) {
         sf::Time elapsed = clock.restart();
@@ -85,6 +96,14 @@ int main()
                 // Wymuszenie wielkości obrazu
                 window.setView(sf::View(sf::FloatRect(0, 0, event.size.width, event.size.height)));
             }
+            if (event.type == sf::Event::MouseButtonPressed) {
+                if(event.mouseButton.button == sf::Mouse::Left) {
+                    sf::Vector2i mouse_pos = sf::Mouse::getPosition(window);
+                    sf::Vector2f p = window.mapPixelToCoords(mouse_pos);
+                    std::cout << "Mouse clicked: " << p.x << ", " << p.y << std::endl;
+                }
+            }
+
         }
 
 
@@ -94,6 +113,8 @@ int main()
         virtualScreen.draw(sciany);
 
 
+        for (auto &bal : Kule)
+            virtualScreen.draw(bal);
 
         // Render w odpowiedniej rozdzielczości:
         virtualScreen.display();
