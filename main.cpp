@@ -3,6 +3,11 @@
 #include <SFML/Graphics.hpp>
 using namespace std;
 
+float square(float a)
+{
+    return a*a;
+}
+
 void ZaladujTekstureTla(sf::Texture& tlo_stolu) // Przyjmuje referencję, nic nie kopiuje
 {
     if (!tlo_stolu.loadFromFile("assets//stol_tlo.png")) {
@@ -21,6 +26,7 @@ void ZaladujTekstureScian(sf::Texture& sciany_stolu) // Przyjmuje referencję, n
 class BilardBall : public sf::CircleShape
 {
 public:
+    bool Held = false;
     sf::Vector3i velocity;
     sf::IntRect bounds;
     BilardBall(float radius, const sf::Vector2f& position):
@@ -77,7 +83,7 @@ int main()
     vector <float> pozycjebazoweY = {180,  225,202,180,157,135,  157,202,180,  169,191,  146,214,169,191,  180};
     vector<BilardBall> Kule;
     for (int i=0; i<16; i++) {
-        float radi = 7*(float(virtualScreen.getSize().x)/window.getSize().x);
+        float radi = 8*(float(virtualScreen.getSize().x)/window.getSize().x);
         sf::Vector2f position(pozycjebazoweX[i]*(float(virtualScreen.getSize().x)/window.getSize().x),pozycjebazoweY[i]*(float(virtualScreen.getSize().y)/window.getSize().y));
         Kule.emplace_back(BilardBall(radi, position));
     }
@@ -100,8 +106,18 @@ int main()
             if (event.type == sf::Event::MouseButtonPressed) {
                 if(event.mouseButton.button == sf::Mouse::Left) {
                     sf::Vector2i mouse_pos = sf::Mouse::getPosition(window);
-                    sf::Vector2f p = window.mapPixelToCoords(mouse_pos);
+                    sf::Vector2f p = window.mapPixelToCoords(mouse_pos, virtualScreen.getView());
                     std::cout << "Mouse clicked: " << p.x << ", " << p.y << std::endl;
+
+                    for (auto &bal : Kule)
+                    {
+                        if( square(bal.getPosition().x - p.x) + square(bal.getPosition().y - p.y) < square(bal.getRadius()) )
+                        {
+                            bal.Held = true;
+                        }
+                        else
+                            bal.Held = false;
+                    }
                 }
             }
 
