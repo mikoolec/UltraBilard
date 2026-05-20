@@ -47,8 +47,9 @@ int main()
 
     // Przygotowanie stylizowanego ekranu:
     sf::RenderTexture virtualScreen;
-    virtualScreen.create(128,72);
+    virtualScreen.create(320,180);
     virtualScreen.setSmooth(false);
+    // Wypróbowane wartości: 640,360 ; 320,180 ; 480,270 ; 256,144 ; 128,72
 
     // Importowanie tła:
     sf::Texture tlo_stolu;
@@ -71,13 +72,13 @@ int main()
     float scaleYsciany = (float)virtualScreen.getSize().y / sciany_stol.getSize().y;
     sciany.setScale(scaleXsciany, scaleYsciany);
 
-    // Stworzenie kul
-    vector <float> pozycjeX = {320,164,164,164,164,164};
-    vector <float> pozycjeY = {180,90,270,180,135,225};
+    // Stworzenie kul i ustawienie ich
+    vector <float> pozycjebazoweX = {240,  162,162,162,162,162,  201,201,201,  220,220,  181,181,181,181,  400};
+    vector <float> pozycjebazoweY = {180,  225,202,180,157,135,  157,202,180,  169,191,  146,214,169,191,  180};
     vector<BilardBall> Kule;
-    for (int i=0; i<6; i++) {
-        float radi = 3;
-        sf::Vector2f position(pozycjeX[i]*(128.f/640.f),pozycjeY[i]*(72.f/360.f));
+    for (int i=0; i<16; i++) {
+        float radi = 7*(float(virtualScreen.getSize().x)/window.getSize().x);
+        sf::Vector2f position(pozycjebazoweX[i]*(float(virtualScreen.getSize().x)/window.getSize().x),pozycjebazoweY[i]*(float(virtualScreen.getSize().y)/window.getSize().y));
         Kule.emplace_back(BilardBall(radi, position));
     }
 
