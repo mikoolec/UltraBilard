@@ -10,6 +10,13 @@ void ZaladujTekstureTla(sf::Texture& tlo_stolu) // Przyjmuje referencję, nic ni
     }
     tlo_stolu.setSmooth(false); // Tutaj ustawione zadziała, bo obiekt nie zostanie skopiowany
 }
+void ZaladujTekstureScian(sf::Texture& sciany_stolu) // Przyjmuje referencję, nic nie kopiuje
+{
+    if (!sciany_stolu.loadFromFile("assets//stol_sciany.png")) {
+        std::cout << "Blad: Nie znaleziono pliku stol_sciany.png!" << std::endl;
+    }
+    sciany_stolu.setSmooth(false); // Tutaj ustawione zadziała, bo obiekt nie zostanie skopiowany
+}
 
 class BilardBall : public sf::CircleShape
 {
@@ -24,6 +31,14 @@ public:
         setPosition(position);
         setOrigin(sf::Vector2f(radius,radius));
     }
+
+    void animate(const sf::Time &elapsed) {
+
+        const float dt = elapsed.asSeconds();
+        move(dt*velocity.x, dt*velocity.y);
+        rotate(dt*velocity.z);
+
+    }
 };
 
 int main()
@@ -32,7 +47,7 @@ int main()
 
     // Przygotowanie stylizowanego ekranu:
     sf::RenderTexture virtualScreen;
-    virtualScreen.create(320, 180);
+    virtualScreen.create(640, 360);
     virtualScreen.setSmooth(false);
 
     // Importowanie tła:
@@ -41,10 +56,20 @@ int main()
     sf::Sprite tlo;
     tlo.setTexture(tlo_stolu);
 
-    // Skalowanie tła na cały ekran:
+    // Importowanie scian:
+    sf::Texture sciany_stol;
+    ZaladujTekstureScian(sciany_stol);
+    sf::Sprite sciany;
+    sciany.setTexture(sciany_stol);
+
+    // Skalowanie tla na cały ekran:
     float scaleXtlo = (float)virtualScreen.getSize().x / tlo_stolu.getSize().x;
     float scaleYtlo = (float)virtualScreen.getSize().y / tlo_stolu.getSize().y;
     tlo.setScale(scaleXtlo, scaleYtlo);
+    // Skalowanie scian na cały ekran:
+    float scaleXsciany = (float)virtualScreen.getSize().x / sciany_stol.getSize().x;
+    float scaleYsciany = (float)virtualScreen.getSize().y / sciany_stol.getSize().y;
+    sciany.setScale(scaleXsciany, scaleYsciany);
 
     sf::Clock clock;
     while (window.isOpen()) {
@@ -66,6 +91,7 @@ int main()
         // Przygotowanie ekranu do renderowania:
         virtualScreen.clear(sf::Color::Black);
         virtualScreen.draw(tlo);
+        virtualScreen.draw(sciany);
 
 
 
