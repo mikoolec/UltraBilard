@@ -3,14 +3,12 @@
 #include <SFML/Graphics.hpp>
 using namespace std;
 
-sf::Texture ZaladujTekstureTla()
+void ZaladujTekstureTla(sf::Texture& tlo_stolu) // Przyjmuje referencję, nic nie kopiuje
 {
-    sf::Texture tlo_stolu;
     if (!tlo_stolu.loadFromFile("assets//stol_tlo.png")) {
-        std::cout << "Blad: Nie znaleziono pliku tlo.png!" << std::endl;
+        std::cout << "Blad: Nie znaleziono pliku stol_tlo.png!" << std::endl;
     }
-
-    return tlo_stolu;
+    tlo_stolu.setSmooth(false); // Tutaj ustawione zadziała, bo obiekt nie zostanie skopiowany
 }
 
 class BilardBall : public sf::CircleShape
@@ -32,29 +30,55 @@ int main()
 {
     sf::RenderWindow window(sf::VideoMode(640, 360), "Okno Gry");
 
+    // Przygotowanie stylizowanego ekranu:
+    sf::RenderTexture virtualScreen;
+    virtualScreen.create(320, 180);
+    virtualScreen.setSmooth(false);
 
+    // Importowanie tła:
+    sf::Texture tlo_stolu;
+    ZaladujTekstureTla(tlo_stolu);
     sf::Sprite tlo;
-    tlo.setTexture(ZaladujTekstureTla());
+    tlo.setTexture(tlo_stolu);
+
+    // Skalowanie tła na cały ekran:
+    float scaleXtlo = (float)virtualScreen.getSize().x / tlo_stolu.getSize().x;
+    float scaleYtlo = (float)virtualScreen.getSize().y / tlo_stolu.getSize().y;
+    tlo.setScale(scaleXtlo, scaleYtlo);
 
     sf::Clock clock;
     while (window.isOpen()) {
         sf::Time elapsed = clock.restart();
 
-          //my_rectangle.animate(elapsed);
-        // check all the window's events that were triggered since the last iteration of the loop
+        // Eventy:
         sf::Event event;
         while (window.pollEvent(event)) {
-            // "close requested" event: we close the window
+            // Zamknięcie okna
             if (event.type == sf::Event::Closed)
                 window.close();
+            if (event.type == sf::Event::Resized) {
+                // Wymuszenie wielkości obrazu
+                window.setView(sf::View(sf::FloatRect(0, 0, event.size.width, event.size.height)));
+            }
         }
 
-        // clear the window with black color
-        window.clear(sf::Color::Black);
-        // draw everything here...
-          //window.draw(my_rectangle);
-        // end the current frame
+
+        // Przygotowanie ekranu do renderowania:
+        virtualScreen.clear(sf::Color::Black);
+        virtualScreen.draw(tlo);
+
+
+
+        // Render w odpowiedniej rozdzielczości:
+        virtualScreen.display();
+        sf::Sprite screenSprite(virtualScreen.getTexture());
+        float scaleX = (float)window.getSize().x / virtualScreen.getSize().x;
+        float scaleY = (float)window.getSize().y / virtualScreen.getSize().y;
+        screenSprite.setScale(scaleX, scaleY);
+        window.clear();
+        window.draw(screenSprite);
         window.display();
+
     }
 
 
