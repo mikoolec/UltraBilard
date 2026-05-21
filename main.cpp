@@ -38,6 +38,19 @@ float square(float a)
     return a*a;
 }
 
+sf::Vector2f normal(sf::Vector2f V)
+{
+    float len;
+    len = square(V.x) + square(V.y);
+    len = sqrt(len);
+    if(len==0)
+    {
+        return sf::Vector2f(0,0);
+    }
+    V = V/len;
+    return V;
+}
+
 void ZaladujTekstureTla(sf::Texture& tlo_stolu) // Przyjmuje referencję, nic nie kopiuje
 {
     if (!tlo_stolu.loadFromFile("assets//stol_tlo.png")) {
@@ -74,6 +87,7 @@ public:
     bool Held = false;
     int identifier;
     float tarcie;
+    float tarciescian;
     sf::Vector2f velocity;
     int rotation;
     sf::IntRect bounds;
@@ -85,15 +99,72 @@ public:
         setPosition(position);
         setOrigin(sf::Vector2f(radius,radius));
         rotation = 0;
-        tarcie = 1.f;
+        tarcie = 0.125f;
+        tarciescian = 5.f;
     }
 
-    void animate(const sf::Time &elapsed) {
+    void rob_tarcie(float sila, bool sciana)
+    {
+        if(sciana)
+        {
+            sf::Vector2f velc_po_tarc;
+            velc_po_tarc = sf::Vector2f( this->velocity - ( normal(this->velocity) * this->tarciescian * sila ) );
+            if( this->velocity.x * velc_po_tarc.x < 0 ) velc_po_tarc.x = 0.f;
+            if( this->velocity.y * velc_po_tarc.y < 0 ) velc_po_tarc.y = 0.f;
+            this->setVelocity(velc_po_tarc);
+        }
+        else
+        {
+            sf::Vector2f velc_po_tarc;
+            velc_po_tarc = sf::Vector2f( this->velocity - ( normal(this->velocity) * this->tarcie * sila ) );
+            if( this->velocity.x * velc_po_tarc.x < 0 ) velc_po_tarc.x = 0.f;
+            if( this->velocity.y * velc_po_tarc.y < 0 ) velc_po_tarc.y = 0.f;
+            this->setVelocity(velc_po_tarc);
+        }
+
+    }
+
+    void animate(const sf::Time &elapsed, std::vector<BilardBall> &Kule, const std::vector<BilardHole> &Dziury, float tarcieScianGlobal, float tarcieStoluGlobal) {
 
         const float dt = elapsed.asSeconds();
         move(dt*velocity.x, dt*velocity.y);
         rotate(dt*rotation);
 
+        // Spowalnianie przez tarcie
+        this->rob_tarcie(tarcieStoluGlobal, 0);
+
+        // Sprawdzenie kolizji ścian
+        if(this->getPosition().x + this->getRadius() > 620)
+        {
+            this->setVelocity(sf::Vector2f(-1*this->velocity.x, this->velocity.y));
+            this->move(sf::Vector2f(620.f - this->getPosition().x - this->getRadius() - 2, 0));
+            this->rob_tarcie(tarcieScianGlobal, 1);
+        }
+        if(this->getPosition().x - this->getRadius() < 20)
+        {
+            this->setVelocity(sf::Vector2f(-1*this->velocity.x, this->velocity.y));
+            this->move(sf::Vector2f(20.f - this->getPosition().x + this->getRadius() + 2, 0));
+            this->rob_tarcie(tarcieScianGlobal, 1);
+        }
+        if(this->getPosition().y + this->getRadius() > 334)
+        {
+            this->setVelocity(sf::Vector2f(this->velocity.x, -1*this->velocity.y));
+            this->move(sf::Vector2f(0, 334.f - this->getPosition().y - this->getRadius() - 2));
+            this->rob_tarcie(tarcieScianGlobal, 1);
+        }
+        if(this->getPosition().y - this->getRadius() < 24)
+        {
+            this->setVelocity(sf::Vector2f(this->velocity.x, -1*this->velocity.y));
+            this->move(sf::Vector2f(0, 24.f - this->getPosition().y + this->getRadius() + 2));
+            this->rob_tarcie(tarcieScianGlobal, 1);
+        }
+
+
+    }
+
+    void setVelocity(sf::Vector2f vel)
+    {
+        velocity = vel;
     }
 };
 
@@ -153,6 +224,14 @@ int main()
         Kule[i].identifier = i;
     }
 
+
+    // Zmienne do ulepszeń
+    float silaStrzalu = 1;
+    float tarcieStoluGlobal = 1;
+    float tarcieScianGlobal = 1;
+    bool widocznoscCelu = true; // do testów, w grze zmienić na false żeby można było kupić
+
+    // Zmienne do działania
     int lastHeldBall = -1;;
     bool isLeftPressed = false;
     bool roundIsActive = false;
@@ -244,7 +323,7 @@ int main()
 
         }
 
-        // Check for holding white ball
+        // Sprawdzanie czy celujemy
         dist_cent = square(Kule[15].getPosition().x - p.x) + square(Kule[15].getPosition().y - p.y);
         dist_cent = sqrt(dist_cent);
         if (lastHeldBall == 15 && dist_cent > Kule[15].getRadius() + 4 )
@@ -256,17 +335,25 @@ int main()
             isDragging = false;
         }
 
-        // Accelerate white ball
+        // Strzał w białą bilę
         velc = clamp(dist_cent,5.f,100.f);
         if(accelerateWhiteNow)
         {
             accelerateWhiteNow = false;
             cout<<"velc = "<<velc<<endl;
+            addVelocity = sf::Vector2f(0,0);
+            addVelocity.x = (8*velc/dist_cent)*(Kule[15].getPosition().x-p.x) ;
+            addVelocity.y = (8*velc/dist_cent)*(Kule[15].getPosition().y-p.y) ;
+            Kule[15].setVelocity(addVelocity * silaStrzalu);
             velc = 0;
         }
 
 
-
+        // Przemieszczenie kul
+        for (auto &bal : Kule)
+        {
+            bal.animate(elapsed, Kule, Dziury, tarcieScianGlobal, tarcieStoluGlobal);
+        }
 
         // Przygotowanie ekranu do renderowania:
         virtualScreen.clear(sf::Color::Black);
@@ -284,10 +371,13 @@ int main()
             // Celownik
             if(isDragging)
             {
-                sf::Vector2f plin;
-                plin.x = Kule[15].getPosition().x + (2*velc/dist_cent)*(Kule[15].getPosition().x-p.x) ;
-                plin.y = Kule[15].getPosition().y + (2*velc/dist_cent)*(Kule[15].getPosition().y-p.y) ;
-                RysujLinie(virtualScreen, Kule[15].getPosition(), plin, 2.f, sf::Color::White);
+                if(widocznoscCelu)
+                {
+                    sf::Vector2f plin;
+                    plin.x = Kule[15].getPosition().x + (2*velc/dist_cent)*(Kule[15].getPosition().x-p.x) ;
+                    plin.y = Kule[15].getPosition().y + (2*velc/dist_cent)*(Kule[15].getPosition().y-p.y) ;
+                    RysujLinie(virtualScreen, Kule[15].getPosition(), plin, 2.f, sf::Color::White);
+                }
             }
         }
 
