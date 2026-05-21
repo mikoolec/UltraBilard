@@ -171,6 +171,7 @@ public:
             g_Stats.punktyTejRundy += this->wartoscPunktowa;
             g_Stats.punktyTejRundy *= this->mnoznikPunktowy;
             this->Put = true;
+            cout<<"Put!"<<endl;
         }
         else
         {
@@ -278,7 +279,7 @@ public:
 
     bool stationary()
     {
-        if( this->velocity.x < 0.1f && this->velocity.y < 0.1f )
+        if( abs(this->velocity.x) < 0.1f && abs(this->velocity.y) < 0.1f )
             return true;
         if( this->Put )
             return true;
@@ -286,14 +287,16 @@ public:
     }
 };
 
-void resetKuleForNextRound( std::vector<BilardBall> &Kule, std::vector<float> MiejscaX, std::vector<float> MiejscaY  )
+void resetKuleForNextRound( std::vector<BilardBall> &Kule, std::vector<float> MiejscaX, std::vector<float> MiejscaY, int &shots  )
 {
     for( auto &bal : Kule )
     {
         bal.Put = false;
         bal.setPosition( MiejscaX[ &bal - &Kule[0] ], MiejscaY[ &bal - &Kule[0] ] );
     }
+    shots = 0;
     g_Stats.punktyTejRundy = 0;
+    cout<<"* reset board *"<<endl;
 }
 
 void mult( std::vector<float> &vec, float num )
@@ -371,9 +374,11 @@ int main()
     float silaStrzalu = 1;
     float tarcieStoluGlobal = 1;
     float tarcieScianGlobal = 1;
+    int maxStrzaly = 20;
     bool widocznoscCelu = true; // do testów, w grze zmienić na false żeby można było kupić
 
     // Zmienne do działania
+    int strzaly = 0;
     int lastHeldBall = -1;
     bool areBallsStationary = false;
     bool isLeftPressed = false;
@@ -404,14 +409,14 @@ int main()
                     sf::Vector2i mouse_pos = sf::Mouse::getPosition(window);
                     p = window.mapPixelToCoords(mouse_pos, virtualScreen.getView());
                     sf::Vector2f pp = window.mapPixelToCoords(mouse_pos);
-                    std::cout << "Mouse clicked: " << pp.x << ", " << pp.y << std::endl;
-                    std::cout << "Mouse clicked retro: " << p.x << ", " << p.y << std::endl;
+                    //std::cout << "Mouse clicked: " << pp.x << ", " << pp.y << std::endl;
+                    //std::cout << "Mouse clicked retro: " << p.x << ", " << p.y << std::endl;
 
                     isLeftPressed = true;
                     // Tymczasowe włączanie gry
                     if(!roundIsActive)
                     {
-                        resetKuleForNextRound(Kule,pozycjebazoweX,pozycjebazoweY);
+                        resetKuleForNextRound(Kule,pozycjebazoweX,pozycjebazoweY, strzaly);
                         roundIsActive = true;
                     }
 
@@ -420,7 +425,7 @@ int main()
                         if( square(bal.getPosition().x - p.x) + square(bal.getPosition().y - p.y) < square(bal.getRadius()) )
                         {
                             bal.Held = true;
-                            if(bal.identifier == 15 && areBallsStationary)
+                            if(bal.identifier == 15 && areBallsStationary && strzaly < maxStrzaly)
                             {
                                 lastHeldBall = bal.identifier;
                             }
@@ -455,7 +460,7 @@ int main()
                         if( dist_cent < square(bal.getRadius()) )
                         {
                             bal.Held = true;
-                            if(bal.identifier == 15 && areBallsStationary)
+                            if(bal.identifier == 15 && areBallsStationary && strzaly < maxStrzaly)
                             {
                                 lastHeldBall = bal.identifier;
                             }
@@ -487,12 +492,14 @@ int main()
         if(accelerateWhiteNow)
         {
             accelerateWhiteNow = false;
-            cout<<"velc = "<<velc<<endl;
+            //cout<<"velc = "<<velc<<endl;
             addVelocity = sf::Vector2f(0,0);
             addVelocity.x = (10*velc/dist_cent)*(Kule[15].getPosition().x-p.x) ;
             addVelocity.y = (10*velc/dist_cent)*(Kule[15].getPosition().y-p.y) ;
             Kule[15].setVelocity(addVelocity * silaStrzalu);
             velc = 0;
+            strzaly ++;
+            cout<<"strzal #"<<strzaly<<endl;
         }
 
         // Sprawdzenie czy można strzelać
