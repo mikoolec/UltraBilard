@@ -116,6 +116,8 @@ public:
     int wartoscPunktowa;
     float mnoznikPunktowy;
     float radiusMultipl;
+    int punktyNaUderzeniuKuli;
+    int punktyNaUderzeniuSciany;
     // Zmienne do działania
     bool Held = false;
     bool Put = false;
@@ -137,6 +139,8 @@ public:
         wartoscPunktowa = 1;
         mnoznikPunktowy = 1;
         radiusMultipl = 1;
+        punktyNaUderzeniuKuli = 0;
+        punktyNaUderzeniuSciany = 0;
     }
 
     void rob_tarcie(float sila, bool sciana)
@@ -162,9 +166,18 @@ public:
 
     void ballPut()
     {
-        g_Stats.punktyTejRundy += this->wartoscPunktowa;
-        g_Stats.punktyTejRundy *= this->mnoznikPunktowy;
-        this->Put = true;
+        if(this->identifier != 15)
+        {
+            g_Stats.punktyTejRundy += this->wartoscPunktowa;
+            g_Stats.punktyTejRundy *= this->mnoznikPunktowy;
+            this->Put = true;
+        }
+        else
+        {
+            this->velocity = sf::Vector2f(0,0);
+            this->setPosition(400,180);
+        }
+
     }
 
     void animate(const sf::Time &elapsed, std::vector<BilardBall> &Kule, const std::vector<BilardHole> &Dziury, float tarcieScianGlobal, float tarcieStoluGlobal) {
@@ -199,6 +212,7 @@ public:
             {
                 if ( diff( this->getPosition(), bal.getPosition() ) < this->getRadius() + bal.getRadius() )
                 {
+                    g_Stats.punktyTejRundy += punktyNaUderzeniuKuli;
                     bal.saveBounces.emplace_back(this->identifier);
                     sf::Vector2f D = this->getPosition() - bal.getPosition();
                     float d = diff(D);
@@ -224,24 +238,28 @@ public:
         // Sprawdzenie kolizji ścian
         if(this->getPosition().x + this->getRadius() > 620)
         {
+            g_Stats.punktyTejRundy += punktyNaUderzeniuSciany;
             this->setVelocity(sf::Vector2f(-1*this->velocity.x, this->velocity.y));
             this->move(sf::Vector2f(620.f - this->getPosition().x - this->getRadius() - 2, 0));
             this->rob_tarcie(tarcieScianGlobal, 1);
         }
         if(this->getPosition().x - this->getRadius() < 20)
         {
+            g_Stats.punktyTejRundy += punktyNaUderzeniuSciany;
             this->setVelocity(sf::Vector2f(-1*this->velocity.x, this->velocity.y));
             this->move(sf::Vector2f(20.f - this->getPosition().x + this->getRadius() + 2, 0));
             this->rob_tarcie(tarcieScianGlobal, 1);
         }
         if(this->getPosition().y + this->getRadius() > 334)
         {
+            g_Stats.punktyTejRundy += punktyNaUderzeniuSciany;
             this->setVelocity(sf::Vector2f(this->velocity.x, -1*this->velocity.y));
             this->move(sf::Vector2f(0, 334.f - this->getPosition().y - this->getRadius() - 2));
             this->rob_tarcie(tarcieScianGlobal, 1);
         }
         if(this->getPosition().y - this->getRadius() < 24)
         {
+            g_Stats.punktyTejRundy += punktyNaUderzeniuSciany;
             this->setVelocity(sf::Vector2f(this->velocity.x, -1*this->velocity.y));
             this->move(sf::Vector2f(0, 24.f - this->getPosition().y + this->getRadius() + 2));
             this->rob_tarcie(tarcieScianGlobal, 1);
@@ -268,12 +286,14 @@ public:
     }
 };
 
-void resetKuleForNextRound( std::vector<BilardBall> &Kule )
+void resetKuleForNextRound( std::vector<BilardBall> &Kule, std::vector<float> MiejscaX, std::vector<float> MiejscaY  )
 {
     for( auto &bal : Kule )
     {
         bal.Put = false;
+        bal.setPosition( MiejscaX[ &bal - &Kule[0] ], MiejscaY[ &bal - &Kule[0] ] );
     }
+    g_Stats.punktyTejRundy = 0;
 }
 
 void mult( std::vector<float> &vec, float num )
@@ -389,7 +409,11 @@ int main()
 
                     isLeftPressed = true;
                     // Tymczasowe włączanie gry
-                    roundIsActive = true;
+                    if(!roundIsActive)
+                    {
+                        resetKuleForNextRound(Kule,pozycjebazoweX,pozycjebazoweY);
+                        roundIsActive = true;
+                    }
 
                     for (auto &bal : Kule)
                     {
