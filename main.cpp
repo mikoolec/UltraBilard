@@ -172,6 +172,7 @@ public:
             g_Stats.punktyTejRundy *= this->mnoznikPunktowy;
             this->Put = true;
             cout<<"Put!"<<endl;
+            cout<<"Aktualne punkty: "<<g_Stats.punktyTejRundy<<endl;
         }
         else
         {
@@ -293,6 +294,7 @@ void resetKuleForNextRound( std::vector<BilardBall> &Kule, std::vector<float> Mi
     {
         bal.Put = false;
         bal.setPosition( MiejscaX[ &bal - &Kule[0] ], MiejscaY[ &bal - &Kule[0] ] );
+        bal.setVelocity( sf::Vector2f(0,0) );
     }
     shots = 0;
     g_Stats.punktyTejRundy = 0;
@@ -365,7 +367,11 @@ int main()
         Kule[i].identifier = i;
         if(i==15)
         {
-            Kule[i].setFillColor(sf::Color(128,256,256));
+            Kule[i].setFillColor(sf::Color(255,255,255));
+        }
+        else
+        {
+            Kule[i].setFillColor(sf::Color(180,180,180));
         }
     }
 
@@ -378,6 +384,7 @@ int main()
     bool widocznoscCelu = true; // do testów, w grze zmienić na false żeby można było kupić
 
     // Zmienne do działania
+    int celPunktow = 10;
     int strzaly = 0;
     int lastHeldBall = -1;
     bool areBallsStationary = false;
@@ -473,6 +480,21 @@ int main()
                 }
             }
 
+        }
+
+        // Zakończenie rundy
+        if( areBallsStationary && strzaly >= maxStrzaly )
+        {
+            roundIsActive = false;
+            g_Stats.punktyGlobalnie += g_Stats.punktyTejRundy;
+            if( g_Stats.punktyTejRundy >= celPunktow )
+            {
+                // Win
+            }
+            else
+            {
+                // Lose
+            }
         }
 
         // Sprawdzanie czy celujemy
