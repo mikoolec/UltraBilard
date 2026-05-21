@@ -3,6 +3,7 @@
 #include <SFML/Graphics.hpp>
 #include <cstdio>
 #include <cmath>
+#include <algorithm>
 using namespace std;
 
 void RysujLinie(sf::RenderTexture& target, sf::Vector2f punktA, sf::Vector2f punktB, float grubosc, sf::Color kolor)
@@ -72,22 +73,26 @@ class BilardBall : public sf::CircleShape
 public:
     bool Held = false;
     int identifier;
-    sf::Vector3i velocity;
+    float tarcie;
+    sf::Vector2f velocity;
+    int rotation;
     sf::IntRect bounds;
     BilardBall(float radius, const sf::Vector2f& position):
         sf::CircleShape(radius),
-        velocity(sf::Vector3i(0,0,0)),
+        velocity(sf::Vector2f(0,0)),
         bounds(sf::IntRect(0,0,0,0))
     {
         setPosition(position);
         setOrigin(sf::Vector2f(radius,radius));
+        rotation = 0;
+        tarcie = 1.f;
     }
 
     void animate(const sf::Time &elapsed) {
 
         const float dt = elapsed.asSeconds();
         move(dt*velocity.x, dt*velocity.y);
-        rotate(dt*velocity.z);
+        rotate(dt*rotation);
 
     }
 };
@@ -96,11 +101,14 @@ int main()
 {
     sf::RenderWindow window(sf::VideoMode(640, 360), "Okno Gry");
 
+    // Uzywac tej zmiennej w ustawieniach
+    // Wypróbowane wartości: 640,360 ; 320,180 ; 480,270 ; 256,144 ; 128,72 ; 1280,720
+    pair <int,int> rozdzielczosc = make_pair(640,360);
     // Przygotowanie stylizowanego ekranu:
     sf::RenderTexture virtualScreen;
-    virtualScreen.create(320,180);
+    virtualScreen.create(rozdzielczosc.first,rozdzielczosc.second);
     virtualScreen.setSmooth(false);
-    // Wypróbowane wartości: 640,360 ; 320,180 ; 480,270 ; 256,144 ; 128,72
+
 
     // Importowanie tła:
     sf::Texture tlo_stolu;
@@ -149,6 +157,10 @@ int main()
     bool isLeftPressed = false;
     bool roundIsActive = false;
     bool isDragging = false;
+    bool accelerateWhiteNow = false;
+    float velc = 0.f;
+    float dist_cent;
+    sf::Vector2f addVelocity;
     sf::Vector2f p;
     sf::Clock clock;
     while (window.isOpen()) {
@@ -168,7 +180,7 @@ int main()
                 if (event.mouseButton.button == sf::Mouse::Left) {
 
                     sf::Vector2i mouse_pos = sf::Mouse::getPosition(window);
-                    sf::Vector2f p = window.mapPixelToCoords(mouse_pos, virtualScreen.getView());
+                    p = window.mapPixelToCoords(mouse_pos, virtualScreen.getView());
                     sf::Vector2f pp = window.mapPixelToCoords(mouse_pos);
                     std::cout << "Mouse clicked: " << pp.x << ", " << pp.y << std::endl;
                     std::cout << "Mouse clicked retro: " << p.x << ", " << p.y << std::endl;
@@ -182,7 +194,11 @@ int main()
                         if( square(bal.getPosition().x - p.x) + square(bal.getPosition().y - p.y) < square(bal.getRadius()) )
                         {
                             bal.Held = true;
-                            lastHeldBall = bal.identifier;
+                            if(bal.identifier == 15)
+                            {
+                                lastHeldBall = bal.identifier;
+                            }
+
                         }
                         else
                         {
@@ -195,6 +211,10 @@ int main()
                 if (event.mouseButton.button == sf::Mouse::Left) {
                     isLeftPressed = false;
                     lastHeldBall = -1;
+                    if(isDragging)
+                    {
+                        accelerateWhiteNow = true;
+                    }
                     isDragging = false;
                 }
             }
@@ -205,25 +225,47 @@ int main()
 
                     for (auto &bal : Kule)
                     {
-                        if( square(bal.getPosition().x - p.x) + square(bal.getPosition().y - p.y) < square(bal.getRadius()) )
+                        float dist_cent = square(bal.getPosition().x - p.x) + square(bal.getPosition().y - p.y);
+                        if( dist_cent < square(bal.getRadius()) )
                         {
                             bal.Held = true;
-                            lastHeldBall = bal.identifier;
+                            if(bal.identifier == 15)
+                            {
+                                lastHeldBall = bal.identifier;
+                            }
                         }
                         else
                         {
                             bal.Held = false;
-                            if (lastHeldBall == 15)
-                            {
-                                isDragging = true;
-
-                            }
                         }
                     }
                 }
             }
 
         }
+
+        // Check for holding white ball
+        dist_cent = square(Kule[15].getPosition().x - p.x) + square(Kule[15].getPosition().y - p.y);
+        dist_cent = sqrt(dist_cent);
+        if (lastHeldBall == 15 && dist_cent > Kule[15].getRadius() + 4 )
+        {
+            isDragging = true;
+        }
+        else
+        {
+            isDragging = false;
+        }
+
+        // Accelerate white ball
+        velc = clamp(dist_cent,5.f,100.f);
+        if(accelerateWhiteNow)
+        {
+            accelerateWhiteNow = false;
+            cout<<"velc = "<<velc<<endl;
+            velc = 0;
+        }
+
+
 
 
         // Przygotowanie ekranu do renderowania:
@@ -233,14 +275,19 @@ int main()
             virtualScreen.draw(hol);
         virtualScreen.draw(sciany);
 
-
+        // Render
         if(roundIsActive)
         {
             for (auto &bal : Kule)
                 virtualScreen.draw(bal);
+
+            // Celownik
             if(isDragging)
             {
-                RysujLinie(virtualScreen, Kule[15].getPosition(), p, 2.f, sf::Color::White);
+                sf::Vector2f plin;
+                plin.x = Kule[15].getPosition().x + (2*velc/dist_cent)*(Kule[15].getPosition().x-p.x) ;
+                plin.y = Kule[15].getPosition().y + (2*velc/dist_cent)*(Kule[15].getPosition().y-p.y) ;
+                RysujLinie(virtualScreen, Kule[15].getPosition(), plin, 2.f, sf::Color::White);
             }
         }
 
