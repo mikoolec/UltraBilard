@@ -115,6 +115,7 @@ public:
     float tarciescian;
     int wartoscPunktowa;
     float mnoznikPunktowy;
+    float radiusMultipl;
     // Zmienne do działania
     bool Held = false;
     bool Put = false;
@@ -135,6 +136,7 @@ public:
         tarciescian = 5.f;
         wartoscPunktowa = 1;
         mnoznikPunktowy = 1;
+        radiusMultipl = 1;
     }
 
     void rob_tarcie(float sila, bool sciana)
@@ -255,6 +257,15 @@ public:
     {
         velocity = vel;
     }
+
+    bool stationary()
+    {
+        if( this->velocity.x < 0.1f && this->velocity.y < 0.1f )
+            return true;
+        if( this->Put )
+            return true;
+        return false;
+    }
 };
 
 void resetKuleForNextRound( std::vector<BilardBall> &Kule )
@@ -262,6 +273,14 @@ void resetKuleForNextRound( std::vector<BilardBall> &Kule )
     for( auto &bal : Kule )
     {
         bal.Put = false;
+    }
+}
+
+void mult( std::vector<float> &vec, float num )
+{
+    for( auto &v : vec )
+    {
+        v *= num;
     }
 }
 
@@ -302,11 +321,13 @@ int main()
     // Stworzenie dziur
     vector <float> pozycjedziurX = {320, 320, 24 ,26 , 614 ,614 };
     vector <float> pozycjedziurY = {23,  330, 27 ,328, 26, 330 };
+    mult(pozycjedziurX, (float(virtualScreen.getSize().x)/window.getSize().x));
+    mult(pozycjedziurY, (float(virtualScreen.getSize().y)/window.getSize().y));
     vector <BilardHole> Dziury;
     for (int i=0; i<6; i++)
     {
         float radi = 20*(float(virtualScreen.getSize().x)/window.getSize().x);
-        sf::Vector2f position(pozycjedziurX[i]*(float(virtualScreen.getSize().x)/window.getSize().x),pozycjedziurY[i]*(float(virtualScreen.getSize().y)/window.getSize().y));
+        sf::Vector2f position(pozycjedziurX[i],pozycjedziurY[i]);
         Dziury.emplace_back(BilardHole(radi,position));
     }
 
@@ -333,7 +354,8 @@ int main()
     bool widocznoscCelu = true; // do testów, w grze zmienić na false żeby można było kupić
 
     // Zmienne do działania
-    int lastHeldBall = -1;;
+    int lastHeldBall = -1;
+    bool areBallsStationary = false;
     bool isLeftPressed = false;
     bool roundIsActive = false;
     bool isDragging = false;
@@ -374,7 +396,7 @@ int main()
                         if( square(bal.getPosition().x - p.x) + square(bal.getPosition().y - p.y) < square(bal.getRadius()) )
                         {
                             bal.Held = true;
-                            if(bal.identifier == 15)
+                            if(bal.identifier == 15 && areBallsStationary)
                             {
                                 lastHeldBall = bal.identifier;
                             }
@@ -409,7 +431,7 @@ int main()
                         if( dist_cent < square(bal.getRadius()) )
                         {
                             bal.Held = true;
-                            if(bal.identifier == 15)
+                            if(bal.identifier == 15 && areBallsStationary)
                             {
                                 lastHeldBall = bal.identifier;
                             }
@@ -449,7 +471,15 @@ int main()
             velc = 0;
         }
 
-
+        // Sprawdzenie czy można strzelać
+        areBallsStationary = true;
+        for (auto &bal : Kule)
+        {
+            if( !bal.stationary() )
+            {
+                areBallsStationary = false;
+            }
+        }
 
         // Reset kolizji kul
         for (auto &bal : Kule)
