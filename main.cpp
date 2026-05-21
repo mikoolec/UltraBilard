@@ -1,6 +1,7 @@
 #include <iostream>
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include <cstdio>
 #include <cmath>
 #include <algorithm>
@@ -12,6 +13,24 @@ struct GameStats
     int punktyGlobalnie = 0;
     int monety = 0;
 }g_Stats;
+
+struct AudioManager
+{
+    sf::SoundBuffer wallhitBuffer;
+    sf::SoundBuffer ballhitBuffer;
+
+
+    void init()
+    {
+        // Importowanie sfx:
+        if (!wallhitBuffer.loadFromFile("assets//sound_wall.wav")) {
+            std::cout << "Blad: Nie znaleziono assets/sound_wall.wav!" << std::endl;
+        }
+        if (!ballhitBuffer.loadFromFile("assets//sound_ball.wav")) {
+            std::cout << "Blad: Nie znaleziono assets/sound_ball.wav!" << std::endl;
+        }
+    }
+}g_Audio;
 
 void RysujLinie(sf::RenderTexture& target, sf::Vector2f punktA, sf::Vector2f punktB, float grubosc, sf::Color kolor)
 {
@@ -74,19 +93,19 @@ sf::Vector2f normal(sf::Vector2f V)
     return V;
 }
 
-void ZaladujTekstureTla(sf::Texture& tlo_stolu) // Przyjmuje referencję, nic nie kopiuje
+void ZaladujTekstureTla(sf::Texture& tlo_stolu)
 {
     if (!tlo_stolu.loadFromFile("assets//stol_tlo.png")) {
         std::cout << "Blad: Nie znaleziono pliku stol_tlo.png!" << std::endl;
     }
-    tlo_stolu.setSmooth(false); // Tutaj ustawione zadziała, bo obiekt nie zostanie skopiowany
+    tlo_stolu.setSmooth(false);
 }
-void ZaladujTekstureScian(sf::Texture& sciany_stolu) // Przyjmuje referencję, nic nie kopiuje
+void ZaladujTekstureScian(sf::Texture& sciany_stolu)
 {
     if (!sciany_stolu.loadFromFile("assets//stol_sciany.png")) {
         std::cout << "Blad: Nie znaleziono pliku stol_sciany.png!" << std::endl;
     }
-    sciany_stolu.setSmooth(false); // Tutaj ustawione zadziała, bo obiekt nie zostanie skopiowany
+    sciany_stolu.setSmooth(false);
 }
 
 
@@ -126,6 +145,10 @@ public:
     sf::Vector2f velocity;
     int rotation;
     sf::IntRect bounds;
+
+    sf::Sound wallhitSFX;
+    sf::Sound ballhitSFX;
+
     BilardBall(float radius, const sf::Vector2f& position):
         sf::CircleShape(radius),
         velocity(sf::Vector2f(0,0)),
@@ -141,6 +164,11 @@ public:
         radiusMultipl = 1;
         punktyNaUderzeniuKuli = 0;
         punktyNaUderzeniuSciany = 0;
+
+        wallhitSFX.setBuffer(g_Audio.wallhitBuffer);
+        wallhitSFX.setVolume(20.f);
+        ballhitSFX.setBuffer(g_Audio.ballhitBuffer);
+        ballhitSFX.setVolume(15.f);
     }
 
     void rob_tarcie(float sila, bool sciana)
@@ -216,6 +244,7 @@ public:
                 {
                     g_Stats.punktyTejRundy += punktyNaUderzeniuKuli;
                     bal.saveBounces.emplace_back(this->identifier);
+                    this->ballhitSFX.play();
                     sf::Vector2f D = this->getPosition() - bal.getPosition();
                     float d = diff(D);
                     float delt = this->getRadius() + bal.getRadius() - d;
@@ -240,6 +269,7 @@ public:
         // Sprawdzenie kolizji ścian
         if(this->getPosition().x + this->getRadius() > 620)
         {
+            this->wallhitSFX.play();
             g_Stats.punktyTejRundy += punktyNaUderzeniuSciany;
             this->setVelocity(sf::Vector2f(-1*this->velocity.x, this->velocity.y));
             this->move(sf::Vector2f(620.f - this->getPosition().x - this->getRadius() - 2, 0));
@@ -247,6 +277,7 @@ public:
         }
         if(this->getPosition().x - this->getRadius() < 20)
         {
+            this->wallhitSFX.play();
             g_Stats.punktyTejRundy += punktyNaUderzeniuSciany;
             this->setVelocity(sf::Vector2f(-1*this->velocity.x, this->velocity.y));
             this->move(sf::Vector2f(20.f - this->getPosition().x + this->getRadius() + 2, 0));
@@ -254,6 +285,7 @@ public:
         }
         if(this->getPosition().y + this->getRadius() > 334)
         {
+            this->wallhitSFX.play();
             g_Stats.punktyTejRundy += punktyNaUderzeniuSciany;
             this->setVelocity(sf::Vector2f(this->velocity.x, -1*this->velocity.y));
             this->move(sf::Vector2f(0, 334.f - this->getPosition().y - this->getRadius() - 2));
@@ -261,6 +293,7 @@ public:
         }
         if(this->getPosition().y - this->getRadius() < 24)
         {
+            this->wallhitSFX.play();
             g_Stats.punktyTejRundy += punktyNaUderzeniuSciany;
             this->setVelocity(sf::Vector2f(this->velocity.x, -1*this->velocity.y));
             this->move(sf::Vector2f(0, 24.f - this->getPosition().y + this->getRadius() + 2));
@@ -333,6 +366,9 @@ int main()
     ZaladujTekstureScian(sciany_stol);
     sf::Sprite sciany;
     sciany.setTexture(sciany_stol);
+
+    // Dzwieki
+    g_Audio.init();
 
     // Skalowanie tla na cały ekran:
     float scaleXtlo = (float)virtualScreen.getSize().x / tlo_stolu.getSize().x;

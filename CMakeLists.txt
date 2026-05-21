@@ -18,7 +18,7 @@ FetchContent_MakeAvailable(SFML)
 
 add_executable(UltraBilard main.cpp)
 
-target_link_libraries(UltraBilard PRIVATE sfml-graphics sfml-window sfml-system)
+target_link_libraries(UltraBilard PRIVATE sfml-graphics sfml-window sfml-system sfml-audio)
 
 include(GNUInstallDirs)
 install(TARGETS UltraBilard
@@ -29,3 +29,5 @@ install(TARGETS UltraBilard
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/assets"
      DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
+ file(COPY "${SFML_SOURCE_DIR}/extlibs/bin/x64/openal32.dll"
+      DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
