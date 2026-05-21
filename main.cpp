@@ -6,6 +6,13 @@
 #include <algorithm>
 using namespace std;
 
+struct GameStats
+{
+    int punktyTejRundy = 0;
+    int punktyGlobalnie = 0;
+    int monety = 0;
+}g_Stats;
+
 void RysujLinie(sf::RenderTexture& target, sf::Vector2f punktA, sf::Vector2f punktB, float grubosc, sf::Color kolor)
 {
     // 1. Obliczamy wektor różnicy między punktami
@@ -38,6 +45,22 @@ float square(float a)
     return a*a;
 }
 
+float diff(sf::Vector2f a, sf::Vector2f b)
+{
+    float d;
+    d = square( a.x - b.x ) + square( a.y - b.y );
+    d = sqrt(d);
+    return d;
+}
+
+float diff(sf::Vector2f a)
+{
+    float d;
+    d = square( a.x ) + square( a.y );
+    d = sqrt(d);
+    return d;
+}
+
 sf::Vector2f normal(sf::Vector2f V)
 {
     float len;
@@ -66,6 +89,8 @@ void ZaladujTekstureScian(sf::Texture& sciany_stolu) // Przyjmuje referencję, n
     sciany_stolu.setSmooth(false); // Tutaj ustawione zadziała, bo obiekt nie zostanie skopiowany
 }
 
+
+
 class BilardHole : public sf::CircleShape
 {
 public:
@@ -84,10 +109,17 @@ public:
 class BilardBall : public sf::CircleShape
 {
 public:
-    bool Held = false;
-    int identifier;
+
+    // Zmienne do ulepszeń
     float tarcie;
     float tarciescian;
+    int wartoscPunktowa;
+    float mnoznikPunktowy;
+    // Zmienne do działania
+    bool Held = false;
+    bool Put = false;
+    int identifier;
+    vector <int> saveBounces;
     sf::Vector2f velocity;
     int rotation;
     sf::IntRect bounds;
@@ -101,6 +133,8 @@ public:
         rotation = 0;
         tarcie = 0.125f;
         tarciescian = 5.f;
+        wartoscPunktowa = 1;
+        mnoznikPunktowy = 1;
     }
 
     void rob_tarcie(float sila, bool sciana)
@@ -124,6 +158,13 @@ public:
 
     }
 
+    void ballPut()
+    {
+        g_Stats.punktyTejRundy += this->wartoscPunktowa;
+        g_Stats.punktyTejRundy *= this->mnoznikPunktowy;
+        this->Put = true;
+    }
+
     void animate(const sf::Time &elapsed, std::vector<BilardBall> &Kule, const std::vector<BilardHole> &Dziury, float tarcieScianGlobal, float tarcieStoluGlobal) {
 
         const float dt = elapsed.asSeconds();
@@ -133,6 +174,51 @@ public:
         // Spowalnianie przez tarcie
         this->rob_tarcie(tarcieStoluGlobal, 0);
 
+    }
+
+    void kolizjeDziur(const sf::Time &elapsed, std::vector<BilardBall> &Kule, const std::vector<BilardHole> &Dziury, float tarcieScianGlobal, float tarcieStoluGlobal)
+    {
+        for ( auto &hol : Dziury )
+        {
+            if ( diff( this->getPosition(), hol.getPosition() ) < this->getRadius() + hol.getRadius() )
+            {
+                this->ballPut();
+            }
+        }
+    }
+
+    void kolizjeKul(const sf::Time &elapsed, std::vector<BilardBall> &Kule, const std::vector<BilardHole> &Dziury, float tarcieScianGlobal, float tarcieStoluGlobal)
+    {
+
+        // Sprawdzanie kolizji kul
+        for ( auto &bal : Kule )
+        {
+            if( bal.identifier != this->identifier && !bal.Put && find( bal.saveBounces.begin(), bal.saveBounces.end(), this->identifier) == bal.saveBounces.end() )
+            {
+                if ( diff( this->getPosition(), bal.getPosition() ) < this->getRadius() + bal.getRadius() )
+                {
+                    bal.saveBounces.emplace_back(this->identifier);
+                    sf::Vector2f D = this->getPosition() - bal.getPosition();
+                    float d = diff(D);
+                    float delt = this->getRadius() + bal.getRadius() - d;
+                    sf::Vector2f N = normal(D);
+                    this->move( 0.5f * delt * N * 1.05f );
+                    bal.move( -0.5f * delt * N * 1.05f );
+                    float vi = ( bal.velocity.x * N.x ) + ( bal.velocity.y * N.y ) - ( this->velocity.x * N.x ) - ( this->velocity.y * N.y );
+                    if(vi >= 0)
+                    {
+                        this->setVelocity( this->velocity + vi*N );
+                        bal.setVelocity( bal.velocity - vi*N );
+                    }
+                }
+            }
+        }
+
+
+    }
+
+    void kolizjeScian(const sf::Time &elapsed, std::vector<BilardBall> &Kule, const std::vector<BilardHole> &Dziury, float tarcieScianGlobal, float tarcieStoluGlobal)
+    {
         // Sprawdzenie kolizji ścian
         if(this->getPosition().x + this->getRadius() > 620)
         {
@@ -158,8 +244,11 @@ public:
             this->move(sf::Vector2f(0, 24.f - this->getPosition().y + this->getRadius() + 2));
             this->rob_tarcie(tarcieScianGlobal, 1);
         }
+    }
 
-
+    void cleanBounces()
+    {
+        saveBounces = {};
     }
 
     void setVelocity(sf::Vector2f vel)
@@ -167,6 +256,14 @@ public:
         velocity = vel;
     }
 };
+
+void resetKuleForNextRound( std::vector<BilardBall> &Kule )
+{
+    for( auto &bal : Kule )
+    {
+        bal.Put = false;
+    }
+}
 
 int main()
 {
@@ -222,6 +319,10 @@ int main()
         sf::Vector2f position(pozycjebazoweX[i]*(float(virtualScreen.getSize().x)/window.getSize().x),pozycjebazoweY[i]*(float(virtualScreen.getSize().y)/window.getSize().y));
         Kule.emplace_back(BilardBall(radi, position));
         Kule[i].identifier = i;
+        if(i==15)
+        {
+            Kule[i].setFillColor(sf::Color(128,256,256));
+        }
     }
 
 
@@ -342,17 +443,42 @@ int main()
             accelerateWhiteNow = false;
             cout<<"velc = "<<velc<<endl;
             addVelocity = sf::Vector2f(0,0);
-            addVelocity.x = (8*velc/dist_cent)*(Kule[15].getPosition().x-p.x) ;
-            addVelocity.y = (8*velc/dist_cent)*(Kule[15].getPosition().y-p.y) ;
+            addVelocity.x = (10*velc/dist_cent)*(Kule[15].getPosition().x-p.x) ;
+            addVelocity.y = (10*velc/dist_cent)*(Kule[15].getPosition().y-p.y) ;
             Kule[15].setVelocity(addVelocity * silaStrzalu);
             velc = 0;
         }
 
 
+
+        // Reset kolizji kul
+        for (auto &bal : Kule)
+        {
+            bal.cleanBounces();
+        }
+        // Sprawdzenie kolizji kul
+        for (auto &bal : Kule)
+        {
+            if(!bal.Put)
+                bal.kolizjeKul(elapsed, Kule, Dziury, tarcieScianGlobal, tarcieStoluGlobal);
+        }
+        for (auto &bal : Kule)
+        {
+            if(!bal.Put)
+                bal.kolizjeScian(elapsed, Kule, Dziury, tarcieScianGlobal, tarcieStoluGlobal);
+        }
+        for (auto &bal : Kule)
+        {
+            if(!bal.Put)
+            {
+                bal.kolizjeDziur(elapsed, Kule, Dziury, tarcieScianGlobal, tarcieStoluGlobal);
+            }
+        }
         // Przemieszczenie kul
         for (auto &bal : Kule)
         {
-            bal.animate(elapsed, Kule, Dziury, tarcieScianGlobal, tarcieStoluGlobal);
+            if(!bal.Put)
+                bal.animate(elapsed, Kule, Dziury, tarcieScianGlobal, tarcieStoluGlobal);
         }
 
         // Przygotowanie ekranu do renderowania:
@@ -366,7 +492,13 @@ int main()
         if(roundIsActive)
         {
             for (auto &bal : Kule)
-                virtualScreen.draw(bal);
+            {
+                if(!bal.Put)
+                {
+                    virtualScreen.draw(bal);
+                }
+            }
+
 
             // Celownik
             if(isDragging)
