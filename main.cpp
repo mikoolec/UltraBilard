@@ -7,6 +7,13 @@
 #include <algorithm>
 using namespace std;
 
+enum GameState
+{
+    MENU,
+    PLAYING,
+    SHOP
+};
+
 struct GameStats
 {
     int punktyTejRundy = 0;
@@ -433,6 +440,40 @@ int main()
     sf::Vector2f addVelocity;
     sf::Vector2f p;
     sf::Clock clock;
+
+    // Font do menu
+    sf::Font font;
+    if(!font.loadFromFile("assets//arial.ttf"))
+    {
+        std::cout<<"Brak prawidlowego fonta w folderze"<<std::endl;
+    }
+
+    // Tytul gry w menu -> do zamiany na logo grafike
+    sf::Text titleText("UltraBilard",font,50);
+    titleText.setFillColor(sf::Color::Black);
+    sf::FloatRect titleBounds = titleText.getLocalBounds();
+    titleText.setOrigin(titleBounds.left + titleBounds.width /2.0f, titleBounds.top + titleBounds.height /2.0f);
+    titleText.setPosition(rozdzielczosc.first/2.0f,60);
+
+    // Zmienne do przyciskow menu -> do zamiany na grafike
+    sf::Vector2f buttonSize(200.f,50.f);
+    sf::Color buttonNormalColor(200,200,200);
+    sf::Color buttonHoverColor(150,150,150);
+
+    // Przycisk Start menu -> do zamiany na grafike
+    sf::RectangleShape btnStart(buttonSize);
+    btnStart.setOrigin(buttonSize.x/2.0f,buttonSize.y/2.0f);
+    btnStart.setPosition(rozdzielczosc.first/2.0f,160);
+    btnStart.setFillColor(buttonNormalColor);
+
+    sf::Text txtStart("Start Game",font,24);
+    txtStart.setFillColor(sf::Color::Black);
+    sf::FloatRect startBounds = txtStart.getLocalBounds();
+    txtStart.setOrigin(startBounds.left + startBounds.width/2.0f, startBounds.top+startBounds.height/2.0f);
+    txtStart.setPosition(btnStart.getPosition());
+
+    GameState currentState=MENU;
+
     while (window.isOpen()) {
         sf::Time elapsed = clock.restart();
 
@@ -446,201 +487,238 @@ int main()
                 // Wymuszenie wielkości obrazu
                 window.setView(sf::View(sf::FloatRect(0, 0, event.size.width, event.size.height)));
             }
-            if (event.type == sf::Event::MouseButtonPressed) {
-                if (event.mouseButton.button == sf::Mouse::Left) {
 
-                    sf::Vector2i mouse_pos = sf::Mouse::getPosition(window);
-                    p = window.mapPixelToCoords(mouse_pos, virtualScreen.getView());
-                    sf::Vector2f pp = window.mapPixelToCoords(mouse_pos);
-                    //std::cout << "Mouse clicked: " << pp.x << ", " << pp.y << std::endl;
-                    //std::cout << "Mouse clicked retro: " << p.x << ", " << p.y << std::endl;
+            // Myszka pozycja
+            sf::Vector2i mouse_pos=sf::Mouse::getPosition(window);
+            sf::Vector2f mouse_virtual_pos = window.mapPixelToCoords(mouse_pos, virtualScreen.getView());
+            p = mouse_virtual_pos;
 
-                    isLeftPressed = true;
-                    // Tymczasowe włączanie gry
-                    if(!roundIsActive)
+
+            if(currentState==MENU)
+            {
+                if (event.type == sf::Event::MouseMoved)
+                {
+                    btnStart.setFillColor(btnStart.getGlobalBounds().contains(mouse_virtual_pos) ? buttonHoverColor : buttonNormalColor);
+                }
+                if(event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
+                {
+                    if(btnStart.getGlobalBounds().contains(mouse_virtual_pos))
                     {
                         resetKuleForNextRound(Kule,pozycjebazoweX,pozycjebazoweY, strzaly);
                         roundIsActive = true;
-                    }
-
-                    for (auto &bal : Kule)
-                    {
-                        if( square(bal.getPosition().x - p.x) + square(bal.getPosition().y - p.y) < square(bal.getRadius()) )
-                        {
-                            bal.Held = true;
-                            if(bal.identifier == 15 && areBallsStationary && strzaly < maxStrzaly)
-                            {
-                                lastHeldBall = bal.identifier;
-                            }
-
-                        }
-                        else
-                        {
-                            bal.Held = false;
-                        }
+                        currentState=PLAYING;
                     }
                 }
             }
-            if (event.type == sf::Event::MouseButtonReleased) {
-                if (event.mouseButton.button == sf::Mouse::Left) {
-                    isLeftPressed = false;
-                    lastHeldBall = -1;
-                    if(isDragging)
-                    {
-                        accelerateWhiteNow = true;
+            else if(currentState==PLAYING){
+                if (event.type == sf::Event::MouseButtonPressed) {
+                    if (event.mouseButton.button == sf::Mouse::Left) {
+
+                        // sf::Vector2i mouse_pos = sf::Mouse::getPosition(window);
+                        // p = window.mapPixelToCoords(mouse_pos, virtualScreen.getView());
+                        // sf::Vector2f pp = window.mapPixelToCoords(mouse_pos);
+                        //std::cout << "Mouse clicked: " << pp.x << ", " << pp.y << std::endl;
+                        //std::cout << "Mouse clicked retro: " << p.x << ", " << p.y << std::endl;
+
+                        // isLeftPressed = true;
+                        // // Tymczasowe włączanie gry
+                        // if(!roundIsActive)
+                        // {
+                        //     resetKuleForNextRound(Kule,pozycjebazoweX,pozycjebazoweY, strzaly);
+                        //     roundIsActive = true;
+                        // }
+
+                        for (auto &bal : Kule)
+                        {
+                            if( square(bal.getPosition().x - p.x) + square(bal.getPosition().y - p.y) < square(bal.getRadius()) )
+                            {
+                                bal.Held = true;
+                                if(bal.identifier == 15 && areBallsStationary && strzaly < maxStrzaly)
+                                {
+                                    lastHeldBall = bal.identifier;
+                                }
+
+                            }
+                            else
+                            {
+                                bal.Held = false;
+                            }
+                        }
                     }
+                }
+                if (event.type == sf::Event::MouseButtonReleased) {
+                    if (event.mouseButton.button == sf::Mouse::Left) {
+                        isLeftPressed = false;
+                        lastHeldBall = -1;
+                        if(isDragging)
+                        {
+                            accelerateWhiteNow = true;
+                        }
+                        isDragging = false;
+                    }
+                }
+                if (event.type == sf::Event::MouseMoved) {
+                    if(isLeftPressed) {
+                        sf::Vector2i mouse_pos = sf::Mouse::getPosition(window);
+                        p = window.mapPixelToCoords(mouse_pos, virtualScreen.getView());
+
+                        for (auto &bal : Kule)
+                        {
+                            float dist_cent = square(bal.getPosition().x - p.x) + square(bal.getPosition().y - p.y);
+                            if( dist_cent < square(bal.getRadius()) )
+                            {
+                                bal.Held = true;
+                                if(bal.identifier == 15 && areBallsStationary && strzaly < maxStrzaly)
+                                {
+                                    lastHeldBall = bal.identifier;
+                                }
+                            }
+                            else
+                            {
+                                bal.Held = false;
+                            }
+                        }
+                    }
+                }
+
+            }
+
+        }
+            if(currentState==PLAYING)
+            {
+                // Zakończenie rundy
+                if( areBallsStationary && strzaly >= maxStrzaly )
+                {
+                    roundIsActive = false;
+                    g_Stats.punktyGlobalnie += g_Stats.punktyTejRundy;
+                    if( g_Stats.punktyTejRundy >= celPunktow )
+                    {
+                        // Win
+                    }
+                    else
+                    {
+                        // Lose
+                    }
+                }
+
+                // Sprawdzanie czy celujemy
+                dist_cent = square(Kule[15].getPosition().x - p.x) + square(Kule[15].getPosition().y - p.y);
+                dist_cent = sqrt(dist_cent);
+                if (lastHeldBall == 15 && dist_cent > Kule[15].getRadius() + 4 )
+                {
+                    isDragging = true;
+                }
+                else
+                {
                     isDragging = false;
                 }
-            }
-            if (event.type == sf::Event::MouseMoved) {
-                if(isLeftPressed) {
-                    sf::Vector2i mouse_pos = sf::Mouse::getPosition(window);
-                    p = window.mapPixelToCoords(mouse_pos, virtualScreen.getView());
 
+                // Strzał w białą bilę
+                velc = clamp(dist_cent,5.f,100.f);
+                if(accelerateWhiteNow)
+                {
+                    accelerateWhiteNow = false;
+                    //cout<<"velc = "<<velc<<endl;
+                    addVelocity = sf::Vector2f(0,0);
+                    addVelocity.x = (10*velc/dist_cent)*(Kule[15].getPosition().x-p.x) ;
+                    addVelocity.y = (10*velc/dist_cent)*(Kule[15].getPosition().y-p.y) ;
+                    Kule[15].setVelocity(addVelocity * silaStrzalu);
+                    velc = 0;
+                    strzaly ++;
+                    cout<<"strzal #"<<strzaly<<endl;
+                }
+
+                // Sprawdzenie czy można strzelać
+                areBallsStationary = true;
+                for (auto &bal : Kule)
+                {
+                    if( !bal.stationary() )
+                    {
+                        areBallsStationary = false;
+                    }
+                }
+
+                // Reset kolizji kul
+                for (auto &bal : Kule)
+                {
+                    bal.cleanBounces();
+                }
+                // Sprawdzenie kolizji kul
+                for (auto &bal : Kule)
+                {
+                    if(!bal.Put)
+                        bal.kolizjeKul(elapsed, Kule, Dziury, tarcieScianGlobal, tarcieStoluGlobal);
+                }
+                for (auto &bal : Kule)
+                {
+                    if(!bal.Put)
+                        bal.kolizjeScian(elapsed, Kule, Dziury, tarcieScianGlobal, tarcieStoluGlobal);
+                }
+                for (auto &bal : Kule)
+                {
+                    if(!bal.Put)
+                    {
+                        bal.kolizjeDziur(elapsed, Kule, Dziury, tarcieScianGlobal, tarcieStoluGlobal);
+                    }
+                }
+                // Przemieszczenie kul
+                for (auto &bal : Kule)
+                {
+                    if(!bal.Put)
+                        bal.animate(elapsed, Kule, Dziury, tarcieScianGlobal, tarcieStoluGlobal);
+                }
+            }
+
+            // Przygotowanie ekranu do renderowania:
+            virtualScreen.clear(currentState==MENU ? sf::Color::White : sf::Color::Black);
+
+            if(currentState==MENU)
+            {
+                virtualScreen.draw(titleText);
+                virtualScreen.draw(btnStart);
+                virtualScreen.draw(txtStart);
+            }
+            else if(currentState==PLAYING)
+            {
+                virtualScreen.draw(tlo);
+                for (auto &hol : Dziury)
+                    virtualScreen.draw(hol);
+                virtualScreen.draw(sciany);
+
+                // Render
+                if(roundIsActive)
+                {
                     for (auto &bal : Kule)
                     {
-                        float dist_cent = square(bal.getPosition().x - p.x) + square(bal.getPosition().y - p.y);
-                        if( dist_cent < square(bal.getRadius()) )
+                        if(!bal.Put)
                         {
-                            bal.Held = true;
-                            if(bal.identifier == 15 && areBallsStationary && strzaly < maxStrzaly)
-                            {
-                                lastHeldBall = bal.identifier;
-                            }
+                            virtualScreen.draw(bal);
                         }
-                        else
+                    }
+
+
+                    // Celownik
+                    if(isDragging)
+                    {
+                        if(widocznoscCelu)
                         {
-                            bal.Held = false;
+                            sf::Vector2f plin;
+                            plin.x = Kule[15].getPosition().x + (2*velc/dist_cent)*(Kule[15].getPosition().x-p.x) ;
+                            plin.y = Kule[15].getPosition().y + (2*velc/dist_cent)*(Kule[15].getPosition().y-p.y) ;
+                            RysujLinie(virtualScreen, Kule[15].getPosition(), plin, 2.f, sf::Color::White);
                         }
                     }
                 }
             }
-
-        }
-
-        // Zakończenie rundy
-        if( areBallsStationary && strzaly >= maxStrzaly )
-        {
-            roundIsActive = false;
-            g_Stats.punktyGlobalnie += g_Stats.punktyTejRundy;
-            if( g_Stats.punktyTejRundy >= celPunktow )
-            {
-                // Win
-            }
-            else
-            {
-                // Lose
-            }
-        }
-
-        // Sprawdzanie czy celujemy
-        dist_cent = square(Kule[15].getPosition().x - p.x) + square(Kule[15].getPosition().y - p.y);
-        dist_cent = sqrt(dist_cent);
-        if (lastHeldBall == 15 && dist_cent > Kule[15].getRadius() + 4 )
-        {
-            isDragging = true;
-        }
-        else
-        {
-            isDragging = false;
-        }
-
-        // Strzał w białą bilę
-        velc = clamp(dist_cent,5.f,100.f);
-        if(accelerateWhiteNow)
-        {
-            accelerateWhiteNow = false;
-            //cout<<"velc = "<<velc<<endl;
-            addVelocity = sf::Vector2f(0,0);
-            addVelocity.x = (10*velc/dist_cent)*(Kule[15].getPosition().x-p.x) ;
-            addVelocity.y = (10*velc/dist_cent)*(Kule[15].getPosition().y-p.y) ;
-            Kule[15].setVelocity(addVelocity * silaStrzalu);
-            velc = 0;
-            strzaly ++;
-            cout<<"strzal #"<<strzaly<<endl;
-        }
-
-        // Sprawdzenie czy można strzelać
-        areBallsStationary = true;
-        for (auto &bal : Kule)
-        {
-            if( !bal.stationary() )
-            {
-                areBallsStationary = false;
-            }
-        }
-
-        // Reset kolizji kul
-        for (auto &bal : Kule)
-        {
-            bal.cleanBounces();
-        }
-        // Sprawdzenie kolizji kul
-        for (auto &bal : Kule)
-        {
-            if(!bal.Put)
-                bal.kolizjeKul(elapsed, Kule, Dziury, tarcieScianGlobal, tarcieStoluGlobal);
-        }
-        for (auto &bal : Kule)
-        {
-            if(!bal.Put)
-                bal.kolizjeScian(elapsed, Kule, Dziury, tarcieScianGlobal, tarcieStoluGlobal);
-        }
-        for (auto &bal : Kule)
-        {
-            if(!bal.Put)
-            {
-                bal.kolizjeDziur(elapsed, Kule, Dziury, tarcieScianGlobal, tarcieStoluGlobal);
-            }
-        }
-        // Przemieszczenie kul
-        for (auto &bal : Kule)
-        {
-            if(!bal.Put)
-                bal.animate(elapsed, Kule, Dziury, tarcieScianGlobal, tarcieStoluGlobal);
-        }
-
-        // Przygotowanie ekranu do renderowania:
-        virtualScreen.clear(sf::Color::Black);
-        virtualScreen.draw(tlo);
-        for (auto &hol : Dziury)
-            virtualScreen.draw(hol);
-        virtualScreen.draw(sciany);
-
-        // Render
-        if(roundIsActive)
-        {
-            for (auto &bal : Kule)
-            {
-                if(!bal.Put)
-                {
-                    virtualScreen.draw(bal);
-                }
-            }
-
-
-            // Celownik
-            if(isDragging)
-            {
-                if(widocznoscCelu)
-                {
-                    sf::Vector2f plin;
-                    plin.x = Kule[15].getPosition().x + (2*velc/dist_cent)*(Kule[15].getPosition().x-p.x) ;
-                    plin.y = Kule[15].getPosition().y + (2*velc/dist_cent)*(Kule[15].getPosition().y-p.y) ;
-                    RysujLinie(virtualScreen, Kule[15].getPosition(), plin, 2.f, sf::Color::White);
-                }
-            }
-        }
-
-        // Render w odpowiedniej rozdzielczości:
-        virtualScreen.display();
-        sf::Sprite screenSprite(virtualScreen.getTexture());
-        float scaleX = (float)window.getSize().x / virtualScreen.getSize().x;
-        float scaleY = (float)window.getSize().y / virtualScreen.getSize().y;
-        screenSprite.setScale(scaleX, scaleY);
-        window.clear();
-        window.draw(screenSprite);
-        window.display();
+            // Render w odpowiedniej rozdzielczości:
+            virtualScreen.display();
+            sf::Sprite screenSprite(virtualScreen.getTexture());
+            float scaleX = (float)window.getSize().x / virtualScreen.getSize().x;
+            float scaleY = (float)window.getSize().y / virtualScreen.getSize().y;
+            screenSprite.setScale(scaleX, scaleY);
+            window.clear();
+            window.draw(screenSprite);
+            window.display();
 
     }
 
