@@ -455,22 +455,56 @@ int main()
     titleText.setOrigin(titleBounds.left + titleBounds.width /2.0f, titleBounds.top + titleBounds.height /2.0f);
     titleText.setPosition(rozdzielczosc.first/2.0f,60);
 
-    // Zmienne do przyciskow menu -> do zamiany na grafike
-    sf::Vector2f buttonSize(200.f,50.f);
-    sf::Color buttonNormalColor(200,200,200);
-    sf::Color buttonHoverColor(150,150,150);
-
-    // Przycisk Start menu -> do zamiany na grafike
-    sf::RectangleShape btnStart(buttonSize);
-    btnStart.setOrigin(buttonSize.x/2.0f,buttonSize.y/2.0f);
+    // Przycisk Start menu
+    sf::Texture textStartNormal;
+    if(!textStartNormal.loadFromFile("assets//przycisk_start_normal.png"))
+    {
+        std::cout<<"Brak assets//przycisk_start_normal.png"<<std::endl;
+    }
+     sf::Texture textStartHover;
+    if(!textStartHover.loadFromFile("assets//przycisk_start_hover.png"))
+    {
+        std::cout<<"Brak assets//przycisk_start_hover.png"<<std::endl;
+    }
+    sf::Sprite btnStart;
+    btnStart.setTexture(textStartNormal);
+    sf::FloatRect startBounds = btnStart.getLocalBounds();
+    btnStart.setOrigin(startBounds.width/2.0f,startBounds.height/2.0);
     btnStart.setPosition(rozdzielczosc.first/2.0f,160);
-    btnStart.setFillColor(buttonNormalColor);
 
-    sf::Text txtStart("Start Game",font,24);
-    txtStart.setFillColor(sf::Color::Black);
-    sf::FloatRect startBounds = txtStart.getLocalBounds();
-    txtStart.setOrigin(startBounds.left + startBounds.width/2.0f, startBounds.top+startBounds.height/2.0f);
-    txtStart.setPosition(btnStart.getPosition());
+    // Przycisk Settings menu
+    sf::Texture textSettingsNormal;
+    if(!textSettingsNormal.loadFromFile("assets//przycisk_settings_normal.png"))
+    {
+        std::cout<<"Brak assets//przycisk_settings_normal.png"<<std::endl;
+    }
+    sf::Texture textSettingsHover;
+    if(!textSettingsHover.loadFromFile("assets//przycisk_settings_hover.png"))
+    {
+        std::cout<<"Brak assets//przycisk_settings_hover.png"<<std::endl;
+    }
+    sf::Sprite btnSettings;
+    btnSettings.setTexture(textSettingsNormal);
+    sf::FloatRect settingsBounds = btnSettings.getLocalBounds();
+    btnSettings.setOrigin(settingsBounds.width/2.0f,settingsBounds.height/2.0);
+    btnSettings.setPosition(rozdzielczosc.first/2.0f,230);
+
+    // Przycisk Quit menu
+    sf::Texture textQuitNormal;
+    if(!textQuitNormal.loadFromFile("assets//przycisk_quit_normal.png"))
+    {
+        std::cout<<"Brak assets//przycisk_quit_normal.png"<<std::endl;
+    }
+    sf::Texture textQuitHover;
+    if(!textQuitHover.loadFromFile("assets//przycisk_quit_hover.png"))
+    {
+        std::cout<<"Brak assets//przycisk_quit_hover.png"<<std::endl;
+    }
+    sf::Sprite btnQuit;
+    btnQuit.setTexture(textQuitNormal);
+    sf::FloatRect quitBounds = btnQuit.getLocalBounds();
+    btnQuit.setOrigin(quitBounds.width/2.0f,quitBounds.height/2.0);
+    btnQuit.setPosition(rozdzielczosc.first/2.0f,300);
 
     GameState currentState=MENU;
 
@@ -498,7 +532,39 @@ int main()
             {
                 if (event.type == sf::Event::MouseMoved)
                 {
-                    btnStart.setFillColor(btnStart.getGlobalBounds().contains(mouse_virtual_pos) ? buttonHoverColor : buttonNormalColor);
+                    // start
+                    if(btnStart.getGlobalBounds().contains(mouse_virtual_pos))
+                    {
+                        btnStart.setTexture(textStartHover);
+                        btnStart.setScale(1.1f,1.1f);
+                    }
+                    else
+                    {
+                        btnStart.setTexture(textStartNormal);
+                        btnStart.setScale(1.0f,1.0f);
+                    }
+                    // settings
+                    if(btnSettings.getGlobalBounds().contains(mouse_virtual_pos))
+                    {
+                        btnSettings.setTexture(textSettingsHover);
+                        btnSettings.setScale(1.1f,1.1f);
+                    }
+                    else
+                    {
+                        btnSettings.setTexture(textSettingsNormal);
+                        btnSettings.setScale(1.0f,1.0f);
+                    }
+                    // quit
+                    if(btnQuit.getGlobalBounds().contains(mouse_virtual_pos))
+                    {
+                        btnQuit.setTexture(textQuitHover);
+                        btnQuit.setScale(1.1f,1.1f);
+                    }
+                    else
+                    {
+                        btnQuit.setTexture(textQuitNormal);
+                        btnQuit.setScale(1.0f,1.0f);
+                    }
                 }
                 if(event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
                 {
@@ -507,6 +573,14 @@ int main()
                         resetKuleForNextRound(Kule,pozycjebazoweX,pozycjebazoweY, strzaly);
                         roundIsActive = true;
                         currentState=PLAYING;
+                    }
+                    if(btnSettings.getGlobalBounds().contains(mouse_virtual_pos))
+                    {
+                        std::cout<<"kiedys beda ustawienia"<<std::endl;
+                    }
+                    if(btnQuit.getGlobalBounds().contains(mouse_virtual_pos))
+                    {
+                        window.close();
                     }
                 }
             }
@@ -674,9 +748,11 @@ int main()
 
             if(currentState==MENU)
             {
+                virtualScreen.draw(tlo);
                 virtualScreen.draw(titleText);
                 virtualScreen.draw(btnStart);
-                virtualScreen.draw(txtStart);
+                virtualScreen.draw(btnSettings);
+                virtualScreen.draw(btnQuit);
             }
             else if(currentState==PLAYING)
             {
