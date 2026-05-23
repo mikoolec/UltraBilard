@@ -11,7 +11,8 @@ enum GameState
 {
     MENU,
     PLAYING,
-    SHOP
+    SHOP,
+    GAME_OVER
 };
 
 enum MenuAction
@@ -22,11 +23,20 @@ enum MenuAction
     ActionQuit
 };
 
+enum GameOverAction
+{
+    GO_ActionNone,
+    GO_ActionRetry,
+    GO_ActionMenu
+};
+
 struct GameStats
 {
     int punktyTejRundy = 0;
     int punktyGlobalnie = 0;
     int monety = 0;
+    int monetyGlobalnie = 0;
+    int rundy = 1;
 }g_Stats;
 
 struct AudioManager
@@ -149,7 +159,7 @@ private:
 public:
     MainMenu(std::pair<int,int> res)
     {
-        if(font.loadFromFile("assets//arial.ttf"))
+        if(font.loadFromFile("assets//PublicPixel.ttf"))
         {
             titleText.setFont(font);
             titleText.setString("UltraBilard");
@@ -219,7 +229,108 @@ public:
 };
 
 
+class GameOverScreen
+{
+private:
+    sf::RectangleShape bgFilter;
+    sf::RectangleShape panel;
+    sf::Font font;
+    sf::Text titleText;
+    sf::Text statsText;
+    sf::RectangleShape btnRetry;
+    sf::Text textRetry;
+    sf::RectangleShape btnMenu;
+    sf::Text textMenu;
+public:
+    GameOverScreen(std::pair<int,int> res)
+    {
+        bgFilter.setSize(sf::Vector2f(res.first,res.second));
+        bgFilter.setFillColor(sf::Color(0,0,0,180));
 
+        panel.setSize(sf::Vector2f(320,250));
+        panel.setOrigin(160,125);
+        panel.setPosition(res.first/2.0f,res.second/2.0f);
+        panel.setFillColor(sf::Color::White);
+
+        if(font.loadFromFile("assets/arial.ttf"))
+        {
+            titleText.setFont(font);
+            titleText.setString("GAME OVER");
+            titleText.setCharacterSize(35);
+            titleText.setFillColor(sf::Color::Black);
+            sf::FloatRect tb = titleText.getLocalBounds();
+            titleText.setOrigin(tb.left + tb.width / 2.0f, tb.top + tb.height / 2.0f);
+            titleText.setPosition(res.first / 2.0f, panel.getPosition().y - 90);
+
+            statsText.setFont(font);
+            statsText.setCharacterSize(16);
+            statsText.setFillColor(sf::Color::Black);
+
+            btnRetry.setSize(sf::Vector2f(160,35));
+            btnRetry.setOrigin(80,17.5f);
+            btnRetry.setPosition(res.first/2.0f,panel.getPosition().y+45);
+            btnRetry.setFillColor(sf::Color::Green);
+            textRetry.setFont(font);
+            textRetry.setString("new run");
+            textRetry.setCharacterSize(14);
+            textRetry.setFillColor(sf::Color::Black);
+            sf::FloatRect rb = textRetry.getLocalBounds();
+            textRetry.setOrigin(rb.left + rb.width / 2.0f, rb.top + rb.height / 2.0f);
+            textRetry.setPosition(btnRetry.getPosition());
+
+            btnMenu.setSize(sf::Vector2f(160, 35));
+            btnMenu.setOrigin(80, 17.5f);
+            btnMenu.setPosition(res.first / 2.0f, panel.getPosition().y + 90);
+            btnMenu.setFillColor(sf::Color::Green);
+            textMenu.setFont(font);
+            textMenu.setString("main menu");
+            textMenu.setCharacterSize(14);
+            textMenu.setFillColor(sf::Color::Black);
+            sf::FloatRect mb = textMenu.getLocalBounds();
+            textMenu.setOrigin(mb.left + mb.width / 2.0f, mb.top + mb.height / 2.0f);
+            textMenu.setPosition(btnMenu.getPosition());
+        }
+    }
+
+    void updateStats(const GameStats& stats)
+    {
+        std::string s = "zdobyte punkty: " + std::to_string(stats.punktyGlobalnie) + "\n\n";
+        s+="uzbierane monety: " + std::to_string(stats.monetyGlobalnie)+"\n\n";
+        s+="przetrwane rundy: " + std::to_string(stats.rundy);
+        statsText.setString(s);
+
+        statsText.setOrigin(0,0);
+        statsText.setPosition(panel.getPosition().x-100,panel.getPosition().y-50);
+    }
+
+    void updateHover(sf::Vector2f mousePos)
+    {
+        if (btnRetry.getGlobalBounds().contains(mousePos)) btnRetry.setFillColor(sf::Color(0, 200, 0));
+        else btnRetry.setFillColor(sf::Color::Green);
+
+        if (btnMenu.getGlobalBounds().contains(mousePos)) btnMenu.setFillColor(sf::Color(0, 200, 0));
+        else btnMenu.setFillColor(sf::Color::Green);
+    }
+
+    GameOverAction handleClick(sf::Vector2f mousePos)
+    {
+        if(btnRetry.getGlobalBounds().contains(mousePos)) return GO_ActionRetry;
+        if(btnMenu.getGlobalBounds().contains(mousePos)) return GO_ActionMenu;
+        return GO_ActionNone;
+    }
+
+    void draw(sf::RenderTexture& target)
+    {
+        target.draw(bgFilter);
+        target.draw(panel);
+        target.draw(titleText);
+        target.draw(statsText);
+        target.draw(btnRetry);
+        target.draw(textRetry);
+        target.draw(btnMenu);
+        target.draw(textMenu);
+    }
+};
 
 
 class BilardHole : public sf::CircleShape
@@ -310,6 +421,10 @@ public:
         {
             g_Stats.punktyTejRundy += this->wartoscPunktowa;
             g_Stats.punktyTejRundy *= this->mnoznikPunktowy;
+            g_Stats.monety+=1; // ilosc do ustalenia
+            //statystyki do GO
+            g_Stats.monetyGlobalnie+=1; // ilosc do ustalenia
+            //
             this->Put = true;
             cout<<"Put!"<<endl;
             cout<<"Aktualne punkty: "<<g_Stats.punktyTejRundy<<endl;
@@ -454,6 +569,16 @@ void mult( std::vector<float> &vec, float num )
     }
 }
 
+void resetCalejRozgrywki(std::vector<BilardBall> &Kule,std::vector<float> MiejscaX, std::vector<float> MiejscaY, int &shots)
+{
+    resetKuleForNextRound(Kule,MiejscaX,MiejscaY,shots);
+    g_Stats.punktyGlobalnie=0;
+    g_Stats.monety=0;
+    g_Stats.monetyGlobalnie=0;
+    g_Stats.rundy=1;
+    std::cout<<"resetujemy runa"<<std::endl;
+}
+
 int main()
 {
     sf::RenderWindow window(sf::VideoMode(640, 360), "Okno Gry");
@@ -548,6 +673,7 @@ int main()
 
     GameState currentState=MENU;
     MainMenu glowneMenu(rozdzielczosc);
+    GameOverScreen ekranPrzegranej(rozdzielczosc);
 
     while (window.isOpen()) {
         sf::Time elapsed = clock.restart();
@@ -591,6 +717,28 @@ int main()
                     else if(akcja==ActionQuit)
                     {
                         window.close();
+                    }
+                }
+            }
+            else if(currentState==GAME_OVER)
+            {
+                if(event.type==sf::Event::MouseMoved)
+                {
+                    ekranPrzegranej.updateHover(mouse_virtual_pos);
+                }
+                if(event.type==sf::Event::MouseButtonPressed&&event.mouseButton.button==sf::Mouse::Left)
+                {
+                    GameOverAction goAkcja = ekranPrzegranej.handleClick(mouse_virtual_pos);
+
+                    if(goAkcja==GO_ActionRetry)
+                    {
+                        resetCalejRozgrywki(Kule,pozycjebazoweX,pozycjebazoweY,strzaly);
+                        roundIsActive=true;
+                        currentState=PLAYING;
+                    }
+                    else if(goAkcja==GO_ActionMenu)
+                    {
+                        currentState=MENU;
                     }
                 }
             }
@@ -678,10 +826,14 @@ int main()
                     if( g_Stats.punktyTejRundy >= celPunktow )
                     {
                         // Win
+                        // std::cout<<"sklep"<<std::endl;
                     }
                     else
                     {
                         // Lose
+                        ekranPrzegranej.updateStats(g_Stats);
+                        currentState=GAME_OVER;
+                        std::cout<<"Przegrana"<<std::endl;
                     }
                 }
 
@@ -760,6 +912,23 @@ int main()
             {
                 virtualScreen.draw(tlo);
                 glowneMenu.draw(virtualScreen);
+            }
+            else if(currentState==GAME_OVER)
+            {
+                virtualScreen.draw(tlo);
+                for (auto &hol : Dziury)
+                    virtualScreen.draw(hol);
+                virtualScreen.draw(sciany);
+
+                for (auto &bal : Kule)
+                {
+                    if(!bal.Put)
+                    {
+                        virtualScreen.draw(bal);
+                    }
+                }
+
+                ekranPrzegranej.draw(virtualScreen);
             }
             else if(currentState==PLAYING)
             {
