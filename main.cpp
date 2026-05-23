@@ -14,6 +14,14 @@ enum GameState
     SHOP
 };
 
+enum MenuAction
+{
+    ActionNone,
+    ActionPlay,
+    ActionSettings,
+    ActionQuit
+};
+
 struct GameStats
 {
     int punktyTejRundy = 0;
@@ -114,6 +122,103 @@ void ZaladujTekstureScian(sf::Texture& sciany_stolu)
     }
     sciany_stolu.setSmooth(false);
 }
+
+class MainMenu
+{
+private:
+    sf::Texture textStartNormal, textStartHover;
+    sf::Sprite btnStart;
+    sf::Texture textSettingsNormal, textSettingsHover;
+    sf::Sprite btnSettings;
+    sf::Texture textQuitNormal, textQuitHover;
+    sf::Sprite btnQuit;
+    sf::Font font;
+    sf::Text titleText;
+
+    void setupButton(sf::Sprite& btn, sf::Texture& textNorm, sf::Texture& textHov,std::string pathNorm, std::string pathHov, float x, float y)
+    {
+        if(!textNorm.loadFromFile(pathNorm) || !textHov.loadFromFile(pathHov))
+        {
+            std::cout<<"Brak grafik menu"<<std::endl;
+        }
+        btn.setTexture(textNorm);
+        sf::FloatRect bounds = btn.getLocalBounds();
+        btn.setOrigin(bounds.width/2.0f,bounds.height/2.0f);
+        btn.setPosition(x,y);
+    }
+public:
+    MainMenu(std::pair<int,int> res)
+    {
+        if(font.loadFromFile("assets//arial.ttf"))
+        {
+            titleText.setFont(font);
+            titleText.setString("UltraBilard");
+            titleText.setCharacterSize(50);
+            titleText.setFillColor(sf::Color::White);
+            sf::FloatRect titleBounds = titleText.getLocalBounds();
+            titleText.setOrigin(titleBounds.left + titleBounds.width /2.0f, titleBounds.top + titleBounds.height /2.0f);
+            titleText.setPosition(res.first/2.0f,60);
+        }
+        setupButton(btnStart,textStartNormal,textStartHover, "assets//przycisk_start_normal.png","assets//przycisk_start_hover.png",res.first/2.0f,160);
+        setupButton(btnSettings,textSettingsNormal,textSettingsHover, "assets//przycisk_settings_normal.png","assets//przycisk_settings_hover.png",res.first/2.0f,230);
+        setupButton(btnQuit,textQuitNormal,textQuitHover, "assets//przycisk_quit_normal.png","assets//przycisk_quit_hover.png",res.first/2.0f,300);
+    }
+
+    void updateHover(sf::Vector2f mousePos)
+    {
+        // start
+        if(btnStart.getGlobalBounds().contains(mousePos))
+        {
+            btnStart.setTexture(textStartHover);
+            btnStart.setScale(1.1f,1.1f);
+        }
+        else
+        {
+            btnStart.setTexture(textStartNormal);
+            btnStart.setScale(1.0f,1.0f);
+        }
+        // settings
+        if(btnSettings.getGlobalBounds().contains(mousePos))
+        {
+            btnSettings.setTexture(textSettingsHover);
+            btnSettings.setScale(1.1f,1.1f);
+        }
+        else
+        {
+            btnSettings.setTexture(textSettingsNormal);
+            btnSettings.setScale(1.0f,1.0f);
+        }
+        // quit
+        if(btnQuit.getGlobalBounds().contains(mousePos))
+        {
+            btnQuit.setTexture(textQuitHover);
+            btnQuit.setScale(1.1f,1.1f);
+        }
+        else
+        {
+            btnQuit.setTexture(textQuitNormal);
+            btnQuit.setScale(1.0f,1.0f);
+        }
+    }
+
+    MenuAction handleClick(sf::Vector2f mousePos)
+    {
+        if(btnStart.getGlobalBounds().contains(mousePos)) return ActionPlay;
+        if(btnSettings.getGlobalBounds().contains(mousePos)) return ActionSettings;
+        if(btnQuit.getGlobalBounds().contains(mousePos)) return ActionQuit;
+        return ActionNone;
+    }
+
+    void draw(sf::RenderTexture& target)
+    {
+        target.draw(titleText);
+        target.draw(btnStart);
+        target.draw(btnSettings);
+        target.draw(btnQuit);
+    }
+};
+
+
 
 
 
@@ -441,72 +546,8 @@ int main()
     sf::Vector2f p;
     sf::Clock clock;
 
-    // Font do menu
-    sf::Font font;
-    if(!font.loadFromFile("assets//arial.ttf"))
-    {
-        std::cout<<"Brak prawidlowego fonta w folderze"<<std::endl;
-    }
-
-    // Tytul gry w menu -> do zamiany na logo grafike
-    sf::Text titleText("UltraBilard",font,50);
-    titleText.setFillColor(sf::Color::Black);
-    sf::FloatRect titleBounds = titleText.getLocalBounds();
-    titleText.setOrigin(titleBounds.left + titleBounds.width /2.0f, titleBounds.top + titleBounds.height /2.0f);
-    titleText.setPosition(rozdzielczosc.first/2.0f,60);
-
-    // Przycisk Start menu
-    sf::Texture textStartNormal;
-    if(!textStartNormal.loadFromFile("assets//przycisk_start_normal.png"))
-    {
-        std::cout<<"Brak assets//przycisk_start_normal.png"<<std::endl;
-    }
-     sf::Texture textStartHover;
-    if(!textStartHover.loadFromFile("assets//przycisk_start_hover.png"))
-    {
-        std::cout<<"Brak assets//przycisk_start_hover.png"<<std::endl;
-    }
-    sf::Sprite btnStart;
-    btnStart.setTexture(textStartNormal);
-    sf::FloatRect startBounds = btnStart.getLocalBounds();
-    btnStart.setOrigin(startBounds.width/2.0f,startBounds.height/2.0);
-    btnStart.setPosition(rozdzielczosc.first/2.0f,160);
-
-    // Przycisk Settings menu
-    sf::Texture textSettingsNormal;
-    if(!textSettingsNormal.loadFromFile("assets//przycisk_settings_normal.png"))
-    {
-        std::cout<<"Brak assets//przycisk_settings_normal.png"<<std::endl;
-    }
-    sf::Texture textSettingsHover;
-    if(!textSettingsHover.loadFromFile("assets//przycisk_settings_hover.png"))
-    {
-        std::cout<<"Brak assets//przycisk_settings_hover.png"<<std::endl;
-    }
-    sf::Sprite btnSettings;
-    btnSettings.setTexture(textSettingsNormal);
-    sf::FloatRect settingsBounds = btnSettings.getLocalBounds();
-    btnSettings.setOrigin(settingsBounds.width/2.0f,settingsBounds.height/2.0);
-    btnSettings.setPosition(rozdzielczosc.first/2.0f,230);
-
-    // Przycisk Quit menu
-    sf::Texture textQuitNormal;
-    if(!textQuitNormal.loadFromFile("assets//przycisk_quit_normal.png"))
-    {
-        std::cout<<"Brak assets//przycisk_quit_normal.png"<<std::endl;
-    }
-    sf::Texture textQuitHover;
-    if(!textQuitHover.loadFromFile("assets//przycisk_quit_hover.png"))
-    {
-        std::cout<<"Brak assets//przycisk_quit_hover.png"<<std::endl;
-    }
-    sf::Sprite btnQuit;
-    btnQuit.setTexture(textQuitNormal);
-    sf::FloatRect quitBounds = btnQuit.getLocalBounds();
-    btnQuit.setOrigin(quitBounds.width/2.0f,quitBounds.height/2.0);
-    btnQuit.setPosition(rozdzielczosc.first/2.0f,300);
-
     GameState currentState=MENU;
+    MainMenu glowneMenu(rozdzielczosc);
 
     while (window.isOpen()) {
         sf::Time elapsed = clock.restart();
@@ -532,53 +573,22 @@ int main()
             {
                 if (event.type == sf::Event::MouseMoved)
                 {
-                    // start
-                    if(btnStart.getGlobalBounds().contains(mouse_virtual_pos))
-                    {
-                        btnStart.setTexture(textStartHover);
-                        btnStart.setScale(1.1f,1.1f);
-                    }
-                    else
-                    {
-                        btnStart.setTexture(textStartNormal);
-                        btnStart.setScale(1.0f,1.0f);
-                    }
-                    // settings
-                    if(btnSettings.getGlobalBounds().contains(mouse_virtual_pos))
-                    {
-                        btnSettings.setTexture(textSettingsHover);
-                        btnSettings.setScale(1.1f,1.1f);
-                    }
-                    else
-                    {
-                        btnSettings.setTexture(textSettingsNormal);
-                        btnSettings.setScale(1.0f,1.0f);
-                    }
-                    // quit
-                    if(btnQuit.getGlobalBounds().contains(mouse_virtual_pos))
-                    {
-                        btnQuit.setTexture(textQuitHover);
-                        btnQuit.setScale(1.1f,1.1f);
-                    }
-                    else
-                    {
-                        btnQuit.setTexture(textQuitNormal);
-                        btnQuit.setScale(1.0f,1.0f);
-                    }
+                    glowneMenu.updateHover(mouse_virtual_pos);
                 }
                 if(event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
                 {
-                    if(btnStart.getGlobalBounds().contains(mouse_virtual_pos))
+                    MenuAction akcja = glowneMenu.handleClick(mouse_virtual_pos);
+                    if(akcja==ActionPlay)
                     {
-                        resetKuleForNextRound(Kule,pozycjebazoweX,pozycjebazoweY, strzaly);
-                        roundIsActive = true;
+                        resetKuleForNextRound(Kule,pozycjebazoweX,pozycjebazoweY,strzaly);
+                        roundIsActive=true;
                         currentState=PLAYING;
                     }
-                    if(btnSettings.getGlobalBounds().contains(mouse_virtual_pos))
+                    else if(akcja==ActionSettings)
                     {
                         std::cout<<"kiedys beda ustawienia"<<std::endl;
                     }
-                    if(btnQuit.getGlobalBounds().contains(mouse_virtual_pos))
+                    else if(akcja==ActionQuit)
                     {
                         window.close();
                     }
@@ -749,10 +759,7 @@ int main()
             if(currentState==MENU)
             {
                 virtualScreen.draw(tlo);
-                virtualScreen.draw(titleText);
-                virtualScreen.draw(btnStart);
-                virtualScreen.draw(btnSettings);
-                virtualScreen.draw(btnQuit);
+                glowneMenu.draw(virtualScreen);
             }
             else if(currentState==PLAYING)
             {
