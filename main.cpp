@@ -401,6 +401,63 @@ public:
     }
 };
 
+class ShopMenu
+{
+private:
+    sf::RectangleShape bg;
+    sf::Texture texBtnNextNorm, texBtnNextHov;
+    sf::Sprite btnNext;
+    sf::Font font;
+    sf::Text titleText;
+public:
+    ShopMenu(std::pair<int,int> res)
+    {
+        bg.setSize(sf::Vector2f(res.first,res.second));
+        bg.setFillColor(sf::Color::White);
+
+        if(font.loadFromFile("assets//PublicPixel.ttf"))
+        {
+            titleText.setFont(font);
+            titleText.setString("sklep test");
+            titleText.setCharacterSize(30);
+            titleText.setFillColor(sf::Color::Black);
+            sf::FloatRect tb = titleText.getLocalBounds();
+            titleText.setOrigin(tb.left + tb.width /2.0f, tb.top+tb.height/2.0f);
+            titleText.setPosition(res.first/2.0f,80);
+        }
+
+        if (!texBtnNextNorm.loadFromFile("assets//SHOP_continue_normal.png") ||
+            !texBtnNextHov.loadFromFile("assets//SHOP_continue_hover.png"))
+        {
+            std::cout << "brak przycisku do shop" << std::endl;
+        }
+        texBtnNextNorm.setSmooth(false);
+        texBtnNextHov.setSmooth(false);
+
+        btnNext.setTexture(texBtnNextNorm);
+        sf::FloatRect bounds = btnNext.getLocalBounds();
+        btnNext.setOrigin(bounds.width/2.0f,bounds.height/2.0f);
+        btnNext.setPosition(res.first/2.0f,res.second/2.0f+50);
+    }
+
+    void updateHover(sf::Vector2f mousePos)
+    {
+        if(btnNext.getGlobalBounds().contains(mousePos)) btnNext.setTexture(texBtnNextHov);
+        else btnNext.setTexture(texBtnNextNorm);
+    }
+
+    bool handleNextClick(sf::Vector2f mousePos)
+    {
+        return btnNext.getGlobalBounds().contains(mousePos);
+    }
+
+    void draw(sf::RenderTexture& target)
+    {
+        target.draw(bg);
+        target.draw(titleText);
+        target.draw(btnNext);
+    }
+};
 
 class BilardHole : public sf::CircleShape
 {
@@ -725,11 +782,11 @@ int main()
     float silaStrzalu = 1;
     float tarcieStoluGlobal = 1;
     float tarcieScianGlobal = 1;
-    int maxStrzaly = 2;
+    int maxStrzaly = 20;
     bool widocznoscCelu = true; // do testów, w grze zmienić na false żeby można było kupić
 
     // Zmienne do działania
-    int celPunktow = 10;
+    int celPunktow = 5;
     int strzaly = 0;
     int lastHeldBall = -1;
     bool areBallsStationary = false;
@@ -746,6 +803,7 @@ int main()
     GameState currentState=MENU;
     MainMenu glowneMenu(rozdzielczosc);
     GameOverScreen ekranPrzegranej(rozdzielczosc);
+    ShopMenu ekranSklepu(rozdzielczosc);
 
     while (window.isOpen()) {
         sf::Time elapsed = clock.restart();
@@ -811,6 +869,27 @@ int main()
                     else if(goAkcja==GO_ActionMenu)
                     {
                         currentState=MENU;
+                    }
+                }
+            }
+            else if(currentState==SHOP)
+            {
+                if(event.type==sf::Event::MouseMoved)
+                {
+                    ekranSklepu.updateHover(mouse_virtual_pos);
+                }
+                if(event.type==sf::Event::MouseButtonPressed && event.mouseButton.button==sf::Mouse::Left)
+                {
+                    if(ekranSklepu.handleNextClick(mouse_virtual_pos))
+                    {
+                        g_Stats.rundy++;
+                        celPunktow+=1;             // do ustalenia przy optymalizacji
+
+                        resetKuleForNextRound(Kule,pozycjebazoweX,pozycjebazoweY,strzaly);
+                        roundIsActive=true;
+                        currentState=PLAYING;
+
+                        std::cout<<"runda "<<g_Stats.rundy<<std::endl;
                     }
                 }
             }
@@ -893,16 +972,18 @@ int main()
                 // Zakończenie rundy
                 if( areBallsStationary && strzaly >= maxStrzaly )
                 {
-                    roundIsActive = false;
                     g_Stats.punktyGlobalnie += g_Stats.punktyTejRundy;
                     if( g_Stats.punktyTejRundy >= celPunktow )
                     {
                         // Win
-                        // std::cout<<"sklep"<<std::endl;
+                        roundIsActive = false;
+                        currentState=SHOP;
+                        std::cout<<"sklep"<<std::endl;
                     }
                     else
                     {
                         // Lose
+                        roundIsActive = false;
                         ekranPrzegranej.updateStats(g_Stats);
                         currentState=GAME_OVER;
                         std::cout<<"Przegrana"<<std::endl;
@@ -1002,6 +1083,10 @@ int main()
                 }
 
                 ekranPrzegranej.draw(virtualScreen);
+            }
+            else if(currentState==SHOP)
+            {
+                ekranSklepu.draw(virtualScreen);
             }
             else if(currentState==PLAYING)
             {
