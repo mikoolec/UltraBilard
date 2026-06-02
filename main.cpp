@@ -477,8 +477,17 @@ public:
 class BilardBall : public sf::CircleShape
 {
 public:
-
-    // Zmienne do ulepszeń
+    // Zmienne do ulepszen
+    float tarcieBaza; // wartosc tarcia podlogi, przy upgradach zmniejszac procentowo
+    float tarciescianBaza; // utrata sily przy odbiciu od sciany, przy upgradach zmniejszac procentowo
+    float punktyBaza; // ilosc punktow zdobyta na wbiciu, mozna zwiekszac numerkami lub procentowo
+    float mnoznikBaza; // wartosc przez ktora mnozone sa wszystkie punkty po wbiciu tej bili, zwiekszac procentowo i bardzo konserwatywnie
+    float wielkoscBaza; // promien bili, zwiekszac raczej procentowo i konserwatywnie, mozna dac limit na np 1.5
+    int hitpunktyBaza; // ilosc punktow zdobyta kiedy ta bila zderza sie z inna
+    int hitscianaBaza; // ilosc punktow zdobyta kiedy ta bila zderza sie ze sciana
+    int monetyBaza; // ilosc monet zdobyta na wbiciu tej bili
+    int hitmonetyBaza; // ilosc monet zdobyta kiedy ta bila z czyms sie zderza
+    // Zmienne w grze
     float tarcie;
     float tarciescian;
     int wartoscPunktowa;
@@ -506,18 +515,33 @@ public:
         setPosition(position);
         setOrigin(sf::Vector2f(radius,radius));
         rotation = 0;
-        tarcie = 0.125f;
-        tarciescian = 5.f;
-        wartoscPunktowa = 1;
-        mnoznikPunktowy = 1;
-        radiusMultipl = 1;
-        punktyNaUderzeniuKuli = 0;
-        punktyNaUderzeniuSciany = 0;
+
+        tarcieBaza = 0.125f;
+        tarciescianBaza = 5.f;
+        punktyBaza = 1;
+        mnoznikBaza = 1;
+        wielkoscBaza = 1;
+        hitpunktyBaza = 0;
+        hitscianaBaza = 0;
+        monetyBaza = 1; // na poczatku kazda kula daje 1 monete
+        hitmonetyBaza = 0;
+
 
         wallhitSFX.setBuffer(g_Audio.wallhitBuffer);
         wallhitSFX.setVolume(20.f);
         ballhitSFX.setBuffer(g_Audio.ballhitBuffer);
         ballhitSFX.setVolume(15.f);
+    }
+
+    void resetStats()
+    {
+        this->tarcie = this->tarcieBaza;
+        this->tarciescian = this->tarciescianBaza;
+        this->wartoscPunktowa = this->punktyBaza;
+        this->mnoznikPunktowy = this->mnoznikBaza;
+        this->radiusMultipl = this->wielkoscBaza;
+        this->punktyNaUderzeniuKuli = this->hitpunktyBaza;
+        this->punktyNaUderzeniuSciany = this->hitscianaBaza;
     }
 
     void rob_tarcie(float sila, bool sciana)
@@ -547,7 +571,7 @@ public:
         {
             g_Stats.punktyTejRundy += this->wartoscPunktowa;
             g_Stats.punktyTejRundy *= this->mnoznikPunktowy;
-            g_Stats.monety+=99999; // ilosc do ustalenia
+            g_Stats.monety+=this->monetyBaza; // ilosc do ustalenia
             //statystyki do GO
             g_Stats.monetyGlobalnie+=g_Stats.monety; // ilosc do ustalenia
             g_Stats.wbiteBileGlobalnie+=1;
@@ -596,7 +620,9 @@ public:
             {
                 if ( diff( this->getPosition(), bal.getPosition() ) < this->getRadius() + bal.getRadius() )
                 {
-                    g_Stats.punktyTejRundy += punktyNaUderzeniuKuli;
+                    g_Stats.punktyTejRundy += this->punktyNaUderzeniuKuli;
+                    g_Stats.monety += this->hitmonetyBaza;
+                    g_Stats.monetyGlobalnie+=g_Stats.monety;
                     bal.saveBounces.emplace_back(this->identifier);
                     this->ballhitSFX.play();
                     sf::Vector2f D = this->getPosition() - bal.getPosition();
@@ -624,7 +650,9 @@ public:
         if(this->getPosition().x + this->getRadius() > 620)
         {
             this->wallhitSFX.play();
-            g_Stats.punktyTejRundy += punktyNaUderzeniuSciany;
+            g_Stats.punktyTejRundy += this->punktyNaUderzeniuSciany;
+            g_Stats.monety += this->hitmonetyBaza;
+            g_Stats.monetyGlobalnie+=g_Stats.monety;
             this->setVelocity(sf::Vector2f(-1*this->velocity.x, this->velocity.y));
             this->move(sf::Vector2f(620.f - this->getPosition().x - this->getRadius() - 2, 0));
             this->rob_tarcie(tarcieScianGlobal, 1);
@@ -632,7 +660,9 @@ public:
         if(this->getPosition().x - this->getRadius() < 20)
         {
             this->wallhitSFX.play();
-            g_Stats.punktyTejRundy += punktyNaUderzeniuSciany;
+            g_Stats.punktyTejRundy += this->punktyNaUderzeniuSciany;
+            g_Stats.monety += this->hitmonetyBaza;
+            g_Stats.monetyGlobalnie+=g_Stats.monety;
             this->setVelocity(sf::Vector2f(-1*this->velocity.x, this->velocity.y));
             this->move(sf::Vector2f(20.f - this->getPosition().x + this->getRadius() + 2, 0));
             this->rob_tarcie(tarcieScianGlobal, 1);
@@ -640,7 +670,9 @@ public:
         if(this->getPosition().y + this->getRadius() > 334)
         {
             this->wallhitSFX.play();
-            g_Stats.punktyTejRundy += punktyNaUderzeniuSciany;
+            g_Stats.punktyTejRundy += this->punktyNaUderzeniuSciany;
+            g_Stats.monety += this->hitmonetyBaza;
+            g_Stats.monetyGlobalnie+=g_Stats.monety;
             this->setVelocity(sf::Vector2f(this->velocity.x, -1*this->velocity.y));
             this->move(sf::Vector2f(0, 334.f - this->getPosition().y - this->getRadius() - 2));
             this->rob_tarcie(tarcieScianGlobal, 1);
@@ -648,7 +680,9 @@ public:
         if(this->getPosition().y - this->getRadius() < 24)
         {
             this->wallhitSFX.play();
-            g_Stats.punktyTejRundy += punktyNaUderzeniuSciany;
+            g_Stats.punktyTejRundy += this->punktyNaUderzeniuSciany;
+            g_Stats.monety += this->hitmonetyBaza;
+            g_Stats.monetyGlobalnie+=g_Stats.monety;
             this->setVelocity(sf::Vector2f(this->velocity.x, -1*this->velocity.y));
             this->move(sf::Vector2f(0, 24.f - this->getPosition().y + this->getRadius() + 2));
             this->rob_tarcie(tarcieScianGlobal, 1);
@@ -682,6 +716,7 @@ void resetKuleForNextRound( std::vector<BilardBall> &Kule, std::vector<float> Mi
         bal.Put = false;
         bal.setPosition( MiejscaX[ &bal - &Kule[0] ], MiejscaY[ &bal - &Kule[0] ] );
         bal.setVelocity( sf::Vector2f(0,0) );
+        bal.resetStats();
     }
     shots = 0;
     g_Stats.punktyTejRundy = 0;
