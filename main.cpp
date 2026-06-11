@@ -190,11 +190,11 @@ int main()
     float silaStrzalu = 1;
     float tarcieStoluGlobal = 1;
     float tarcieScianGlobal = 1;
-    int maxStrzaly = 20;
+    int maxStrzaly = 3;
     bool widocznoscCelu = true; // do testów, w grze zmienić na false żeby można było kupić
 
     // Zmienne do działania
-    int celPunktow = 5;
+    int celPunktow = 1;
     int strzaly = 0;
     int lastHeldBall = -1;
     bool areBallsStationary = false;
