@@ -1,4 +1,4 @@
-#include "bilardhole.h"
+#include "BilardHole.h"
 
 BilardHole::BilardHole(float radius, const sf::Vector2f& position)
     : sf::CircleShape(radius), bounds(sf::IntRect(0,0,0,0))

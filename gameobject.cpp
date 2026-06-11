@@ -1,2 +1,2 @@
-#include "gameobject.h"
+#include "GameObject.h"
 

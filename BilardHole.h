@@ -2,7 +2,7 @@
 #define BILARDHOLE_H
 #pragma once
 #include <SFML/Graphics.hpp>
-#include "gameobject.h"
+#include "GameObject.h"
 
 class BilardHole : public sf::CircleShape, public GameObject {
 public:

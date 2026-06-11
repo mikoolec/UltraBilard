@@ -18,9 +18,16 @@ FetchContent_MakeAvailable(SFML)
 
 add_executable(UltraBilard main.cpp
 
-    audiomanager.h audiomanager.cpp
-    bilardhole.h bilardhole.cpp
-    gameobject.h)
+    AudioManager.h AudioManager.cpp
+    BilardHole.h BilardHole.cpp
+    GameObject.h
+    BilardBall.h BilardBall.cpp
+    MathUtils.h
+    Globals.h
+    MenuScreen.h
+    MainMenu.h MainMenu.cpp
+    ShopMenu.h ShopMenu.cpp
+    gameoverscreen.h gameoverscreen.cpp)
 
 target_link_libraries(UltraBilard PRIVATE sfml-graphics sfml-window sfml-system sfml-audio)
 
