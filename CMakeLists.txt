@@ -27,7 +27,7 @@ add_executable(UltraBilard main.cpp
     MenuScreen.h
     MainMenu.h MainMenu.cpp
     ShopMenu.h ShopMenu.cpp
-    gameoverscreen.h gameoverscreen.cpp)
+    GameOverScreen.h GameOverScreen.cpp)
 
 target_link_libraries(UltraBilard PRIVATE sfml-graphics sfml-window sfml-system sfml-audio)
 

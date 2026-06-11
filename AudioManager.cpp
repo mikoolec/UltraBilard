@@ -1,4 +1,4 @@
-#include "audioManager.h"
+#include "AudioManager.h"
 
 // Definicja zmiennej globalnej
 AudioManager g_Audio;

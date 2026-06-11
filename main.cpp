@@ -2,62 +2,27 @@
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
-#include <cstdio>
-#include <cmath>
+#include <vector>
+#include <memory>
+#include <map>
 #include <algorithm>
+
+// nagłówki
+#include "Globals.h"
+#include "AudioManager.h"
+#include "MathUtils.h"
+#include "GameObject.h"
+#include "BilardBall.h"
+#include "BilardHole.h"
+#include "MenuScreen.h"
+#include "MainMenu.h"
+#include "ShopMenu.h"
+#include "GameOverScreen.h"
+
 using namespace std;
 
-enum GameState
-{
-    MENU,
-    PLAYING,
-    SHOP,
-    GAME_OVER
-};
-
-enum MenuAction
-{
-    ActionNone,
-    ActionPlay,
-    ActionSettings,
-    ActionQuit
-};
-
-enum GameOverAction
-{
-    GO_ActionNone,
-    GO_ActionRetry,
-    GO_ActionMenu
-};
-
-struct GameStats
-{
-    int punktyTejRundy = 0;
-    int punktyGlobalnie = 0;
-    int monety = 0;
-    int monetyGlobalnie = 0;
-    int rundy = 1;
-    int wbiteBileGlobalnie = 0;
-    int strzalyGlobalnie = 0;
-}g_Stats;
-
-struct AudioManager
-{
-    sf::SoundBuffer wallhitBuffer;
-    sf::SoundBuffer ballhitBuffer;
-
-
-    void init()
-    {
-        // Importowanie sfx:
-        if (!wallhitBuffer.loadFromFile("assets//sound_wall.wav")) {
-            std::cout << "Blad: Nie znaleziono assets/sound_wall.wav!" << std::endl;
-        }
-        if (!ballhitBuffer.loadFromFile("assets//sound_ball.wav")) {
-            std::cout << "Blad: Nie znaleziono assets/sound_ball.wav!" << std::endl;
-        }
-    }
-}g_Audio;
+// Definicja globalnej zmiennej z Globals.h
+GameStats g_Stats;
 
 void RysujLinie(sf::RenderTexture& target, sf::Vector2f punktA, sf::Vector2f punktB, float grubosc, sf::Color kolor)
 {
@@ -86,40 +51,6 @@ void RysujLinie(sf::RenderTexture& target, sf::Vector2f punktA, sf::Vector2f pun
     target.draw(linia);
 }
 
-float square(float a)
-{
-    return a*a;
-}
-
-float diff(sf::Vector2f a, sf::Vector2f b)
-{
-    float d;
-    d = square( a.x - b.x ) + square( a.y - b.y );
-    d = sqrt(d);
-    return d;
-}
-
-float diff(sf::Vector2f a)
-{
-    float d;
-    d = square( a.x ) + square( a.y );
-    d = sqrt(d);
-    return d;
-}
-
-sf::Vector2f normal(sf::Vector2f V)
-{
-    float len;
-    len = square(V.x) + square(V.y);
-    len = sqrt(len);
-    if(len==0)
-    {
-        return sf::Vector2f(0,0);
-    }
-    V = V/len;
-    return V;
-}
-
 void ZaladujTekstureTla(sf::Texture& tlo_stolu)
 {
     if (!tlo_stolu.loadFromFile("assets//stol_tlo.png")) {
@@ -135,592 +66,22 @@ void ZaladujTekstureScian(sf::Texture& sciany_stolu)
     sciany_stolu.setSmooth(false);
 }
 
-class MainMenu
-{
-private:
-    sf::Texture textStartNormal, textStartHover;
-    sf::Sprite btnStart;
-    sf::Texture textSettingsNormal, textSettingsHover;
-    sf::Sprite btnSettings;
-    sf::Texture textQuitNormal, textQuitHover;
-    sf::Sprite btnQuit;
-    sf::Font font;
-    sf::Text titleText;
-
-    void setupButton(sf::Sprite& btn, sf::Texture& textNorm, sf::Texture& textHov,std::string pathNorm, std::string pathHov, float x, float y)
-    {
-        if(!textNorm.loadFromFile(pathNorm) || !textHov.loadFromFile(pathHov))
-        {
-            std::cout<<"Brak grafik menu"<<std::endl;
-        }
-        btn.setTexture(textNorm);
-        sf::FloatRect bounds = btn.getLocalBounds();
-        btn.setOrigin(bounds.width/2.0f,bounds.height/2.0f);
-        btn.setPosition(x,y);
-    }
-public:
-    MainMenu(std::pair<int,int> res)
-    {
-        if(font.loadFromFile("assets//PublicPixel.ttf"))
-        {
-            titleText.setFont(font);
-            titleText.setString("UltraBilard");
-            titleText.setCharacterSize(50);
-            titleText.setFillColor(sf::Color::White);
-            sf::FloatRect titleBounds = titleText.getLocalBounds();
-            titleText.setOrigin(titleBounds.left + titleBounds.width /2.0f, titleBounds.top + titleBounds.height /2.0f);
-            titleText.setPosition(res.first/2.0f,60);
-        }
-        setupButton(btnStart,textStartNormal,textStartHover, "assets//przycisk_start_normal.png","assets//przycisk_start_hover.png",res.first/2.0f,160);
-        setupButton(btnSettings,textSettingsNormal,textSettingsHover, "assets//przycisk_settings_normal.png","assets//przycisk_settings_hover.png",res.first/2.0f,230);
-        setupButton(btnQuit,textQuitNormal,textQuitHover, "assets//przycisk_quit_normal.png","assets//przycisk_quit_hover.png",res.first/2.0f,300);
-    }
-
-    void updateHover(sf::Vector2f mousePos)
-    {
-        // start
-        if(btnStart.getGlobalBounds().contains(mousePos))
-        {
-            btnStart.setTexture(textStartHover);
-            btnStart.setScale(1.1f,1.1f);
-        }
-        else
-        {
-            btnStart.setTexture(textStartNormal);
-            btnStart.setScale(1.0f,1.0f);
-        }
-        // settings
-        if(btnSettings.getGlobalBounds().contains(mousePos))
-        {
-            btnSettings.setTexture(textSettingsHover);
-            btnSettings.setScale(1.1f,1.1f);
-        }
-        else
-        {
-            btnSettings.setTexture(textSettingsNormal);
-            btnSettings.setScale(1.0f,1.0f);
-        }
-        // quit
-        if(btnQuit.getGlobalBounds().contains(mousePos))
-        {
-            btnQuit.setTexture(textQuitHover);
-            btnQuit.setScale(1.1f,1.1f);
-        }
-        else
-        {
-            btnQuit.setTexture(textQuitNormal);
-            btnQuit.setScale(1.0f,1.0f);
-        }
-    }
-
-    MenuAction handleClick(sf::Vector2f mousePos)
-    {
-        if(btnStart.getGlobalBounds().contains(mousePos)) return ActionPlay;
-        if(btnSettings.getGlobalBounds().contains(mousePos)) return ActionSettings;
-        if(btnQuit.getGlobalBounds().contains(mousePos)) return ActionQuit;
-        return ActionNone;
-    }
-
-    void draw(sf::RenderTexture& target)
-    {
-        target.draw(titleText);
-        target.draw(btnStart);
-        target.draw(btnSettings);
-        target.draw(btnQuit);
-    }
-};
-
-
-class GameOverScreen
-{
-private:
-    sf::RectangleShape bgFilter;
-    sf::Texture texPanel,texTitle,texLine,texCoinIcon;
-    sf::Texture texLabelScore, texLabelCoins, texLabelRounds, texLabelBiles, texLabelShots;
-    sf::Texture texBtnRetryNorm, texBtnRetryHov, texBtnMenuNorm, texBtnMenuHov;
-
-    sf::Sprite sprPanel,sprTitle,sprLine,sprCoinIcon;
-    sf::Sprite sprLabelScore, sprLabelCoins, sprLabelRounds, sprLabelBiles, sprLabelShots;
-    sf::Sprite sprBtnRetry, sprBtnMenu;
-
-    sf::Font font;
-    sf::Text valScore, valCoins, valRounds, valBiles, valShots;
-
-void loadAndSetup(sf::Texture& tex, sf::Sprite& spr, std::string path)
-    {
-        if(!tex.loadFromFile(path))
-        {
-            std::cout<<"brak"<<path<<std::endl;
-        }
-        tex.setSmooth(false);
-        spr.setTexture(tex);
-    }
-public:
-    GameOverScreen(std::pair<int,int> res)
-    {
-        bgFilter.setSize(sf::Vector2f(res.first,res.second));
-        bgFilter.setFillColor(sf::Color(0,0,0,200));
-
-        loadAndSetup(texPanel, sprPanel, "assets//GO_tlo.png");
-        loadAndSetup(texTitle, sprTitle, "assets//GO_GO.png");
-        loadAndSetup(texLine, sprLine, "assets//GO_prosta.png");
-        loadAndSetup(texCoinIcon, sprCoinIcon, "assets//monetka.png");
-
-        loadAndSetup(texLabelScore, sprLabelScore, "assets//GO_zdobyte_punkty.png");
-        loadAndSetup(texLabelCoins, sprLabelCoins, "assets//GO_zebrane_monety.png");
-        loadAndSetup(texLabelRounds, sprLabelRounds, "assets//GO_rundy.png");
-        loadAndSetup(texLabelBiles, sprLabelBiles, "assets//GO_wbite_bile.png");
-        loadAndSetup(texLabelShots, sprLabelShots, "assets//GO_ilosc_strzalow.png");
-
-        if (!texBtnRetryNorm.loadFromFile("assets//GO_new_run_normal.png") ||
-            !texBtnRetryHov.loadFromFile("assets//GO_new_run_hover.png") ||
-            !texBtnMenuNorm.loadFromFile("assets//GO_main_menu_normal.png") ||
-            !texBtnMenuHov.loadFromFile("assets//GO_main_menu_hover.png")) {
-            std::cout << "brak grafik game over" << std::endl;
-        }
-
-        texBtnRetryNorm.setSmooth(false); texBtnRetryHov.setSmooth(false);
-        texBtnMenuNorm.setSmooth(false); texBtnMenuHov.setSmooth(false);
-
-        sf::Vector2f center(res.first/2.0f,res.second/2.0f);
-
-        sf::FloatRect pb = sprPanel.getLocalBounds();
-        sprPanel.setOrigin(pb.width / 2.0f, pb.height / 2.0f);
-        sprPanel.setPosition(center);
-
-        sf::FloatRect tb = sprTitle.getLocalBounds();
-        sprTitle.setOrigin(tb.width / 2.0f, tb.height / 2.0f);
-        sprTitle.setPosition(center.x, center.y - 130);
-        sprTitle.setScale(1.8f,1.8f);
-
-        sf::FloatRect lb = sprLine.getLocalBounds();
-        sprLine.setOrigin(lb.width / 2.0f, lb.height / 2.0f);
-        sprLine.setPosition(center.x, center.y - 110);
-
-        float statsLeftX = center.x - 130; // punkt startowy napisów
-        float statsValueX = center.x + 40; // punkt startowy liczb
-
-        sprLabelScore.setPosition(statsLeftX, center.y - 80);
-        sprLabelCoins.setPosition(statsLeftX, center.y - 50);
-        sprLabelRounds.setPosition(statsLeftX, center.y - 20);
-        sprLabelBiles.setPosition(statsLeftX, center.y + 10);
-        sprLabelShots.setPosition(statsLeftX, center.y + 40);
-
-        sprBtnRetry.setTexture(texBtnRetryNorm);
-        sf::FloatRect rb = sprBtnRetry.getLocalBounds();
-        sprBtnRetry.setOrigin(rb.width / 2.0f, rb.height / 2.0f);
-        sprBtnRetry.setPosition(center.x, center.y + 90);
-        sprBtnRetry.setScale(0.6f,0.6f);
-
-        sprBtnMenu.setTexture(texBtnMenuNorm);
-        sf::FloatRect mb = sprBtnMenu.getLocalBounds();
-        sprBtnMenu.setOrigin(mb.width / 2.0f, mb.height / 2.0f);
-        sprBtnMenu.setPosition(center.x, center.y + 130);
-        sprBtnMenu.setScale(0.6f,0.6f);
-
-        if (font.loadFromFile("assets//PublicPixel.ttf"))
-        {
-            valScore.setFont(font); valScore.setCharacterSize(16); valScore.setFillColor(sf::Color::White);
-            valCoins.setFont(font); valCoins.setCharacterSize(16); valCoins.setFillColor(sf::Color::White);
-            valRounds.setFont(font); valRounds.setCharacterSize(16); valRounds.setFillColor(sf::Color::White);
-            valBiles.setFont(font); valBiles.setCharacterSize(16); valRounds.setFillColor(sf::Color::White);
-            valShots.setFont(font); valShots.setCharacterSize(16); valRounds.setFillColor(sf::Color::White);
-
-            // pozycje liczb
-            valScore.setPosition(statsValueX, sprLabelScore.getPosition().y - 3);
-            valCoins.setPosition(statsValueX, sprLabelCoins.getPosition().y - 3);
-            valRounds.setPosition(statsValueX, sprLabelRounds.getPosition().y - 3);
-            valBiles.setPosition(statsValueX, sprLabelBiles.getPosition().y - 3);
-            valShots.setPosition(statsValueX, sprLabelShots.getPosition().y - 3);
-        }
-    }
-
-    void updateStats(const GameStats& stats)
-    {
-        valScore.setString(std::to_string(stats.punktyGlobalnie));
-        valCoins.setString(std::to_string(stats.monetyGlobalnie));
-        valRounds.setString(std::to_string(stats.rundy));
-        valBiles.setString(std::to_string(stats.wbiteBileGlobalnie));
-        valShots.setString(std::to_string(stats.strzalyGlobalnie));
-
-        float rightEdgeX=sprPanel.getPosition().x+120.0f;
-
-        auto alignTextRight = [&](sf::Text& text)
-        {
-            sf::FloatRect bounds = text.getLocalBounds();
-            text.setOrigin(bounds.left+bounds.width,0);
-            text.setPosition(rightEdgeX,text.getPosition().y);
-        };
-        alignTextRight(valScore);
-        alignTextRight(valCoins);
-        alignTextRight(valRounds);
-        alignTextRight(valBiles);
-        alignTextRight(valShots);
-
-        sprCoinIcon.setPosition(rightEdgeX+10.0f,valCoins.getPosition().y+2.0f);
-    }
-
-    void updateHover(sf::Vector2f mousePos)
-    {
-        if (sprBtnRetry.getGlobalBounds().contains(mousePos)) sprBtnRetry.setTexture(texBtnRetryHov);
-        else sprBtnRetry.setTexture(texBtnRetryNorm);
-
-        if (sprBtnMenu.getGlobalBounds().contains(mousePos)) sprBtnMenu.setTexture(texBtnMenuHov);
-        else sprBtnMenu.setTexture(texBtnMenuNorm);
-    }
-
-    GameOverAction handleClick(sf::Vector2f mousePos)
-    {
-        if (sprBtnRetry.getGlobalBounds().contains(mousePos)) return GO_ActionRetry;
-        if (sprBtnMenu.getGlobalBounds().contains(mousePos)) return GO_ActionMenu;
-        return GO_ActionNone;
-    }
-
-    void draw(sf::RenderTexture& target)
-    {
-        target.draw(bgFilter);
-        target.draw(sprPanel);
-        target.draw(sprTitle);
-        target.draw(sprLine);
-
-        target.draw(sprLabelScore);
-        target.draw(sprLabelCoins);
-        target.draw(sprCoinIcon);
-        target.draw(sprLabelRounds);
-        target.draw(sprLabelBiles);
-        target.draw(sprLabelShots);
-
-        target.draw(valScore);
-        target.draw(valCoins);
-        target.draw(valRounds);
-        target.draw(valBiles);
-        target.draw(valShots);
-
-        target.draw(sprBtnRetry);
-        target.draw(sprBtnMenu);
-    }
-};
-
-class ShopMenu
-{
-private:
-    sf::RectangleShape bg;
-    sf::Texture texBtnNextNorm, texBtnNextHov;
-    sf::Sprite btnNext;
-    sf::Font font;
-    sf::Text titleText;
-public:
-    ShopMenu(std::pair<int,int> res)
-    {
-        bg.setSize(sf::Vector2f(res.first,res.second));
-        bg.setFillColor(sf::Color::White);
-
-        if(font.loadFromFile("assets//PublicPixel.ttf"))
-        {
-            titleText.setFont(font);
-            titleText.setString("sklep test");
-            titleText.setCharacterSize(30);
-            titleText.setFillColor(sf::Color::Black);
-            sf::FloatRect tb = titleText.getLocalBounds();
-            titleText.setOrigin(tb.left + tb.width /2.0f, tb.top+tb.height/2.0f);
-            titleText.setPosition(res.first/2.0f,80);
-        }
-
-        if (!texBtnNextNorm.loadFromFile("assets//SHOP_continue_normal.png") ||
-            !texBtnNextHov.loadFromFile("assets//SHOP_continue_hover.png"))
-        {
-            std::cout << "brak przycisku do shop" << std::endl;
-        }
-        texBtnNextNorm.setSmooth(false);
-        texBtnNextHov.setSmooth(false);
-
-        btnNext.setTexture(texBtnNextNorm);
-        sf::FloatRect bounds = btnNext.getLocalBounds();
-        btnNext.setOrigin(bounds.width/2.0f,bounds.height/2.0f);
-        btnNext.setPosition(res.first/2.0f,res.second/2.0f+50);
-    }
-
-    void updateHover(sf::Vector2f mousePos)
-    {
-        if(btnNext.getGlobalBounds().contains(mousePos)) btnNext.setTexture(texBtnNextHov);
-        else btnNext.setTexture(texBtnNextNorm);
-    }
-
-    bool handleNextClick(sf::Vector2f mousePos)
-    {
-        return btnNext.getGlobalBounds().contains(mousePos);
-    }
-
-    void draw(sf::RenderTexture& target)
-    {
-        target.draw(bg);
-        target.draw(titleText);
-        target.draw(btnNext);
-    }
-};
-
-class BilardHole : public sf::CircleShape
-{
-public:
-    int identifier;
-    sf::IntRect bounds;
-    BilardHole(float radius, const sf::Vector2f& position):
-        sf::CircleShape(radius),
-        bounds(sf::IntRect(0,0,0,0))
-    {
-        setPosition(position);
-        setOrigin(sf::Vector2f(radius,radius));
-        setFillColor(sf::Color(0,0,0));
-    }
-};
-
-class BilardBall : public sf::CircleShape
-{
-public:
-    // Zmienne do ulepszen
-    float tarcieBaza; // wartosc tarcia podlogi, przy upgradach zmniejszac procentowo
-    float tarciescianBaza; // utrata sily przy odbiciu od sciany, przy upgradach zmniejszac procentowo
-    float punktyBaza; // ilosc punktow zdobyta na wbiciu, mozna zwiekszac numerkami lub procentowo
-    float mnoznikBaza; // wartosc przez ktora mnozone sa wszystkie punkty po wbiciu tej bili, zwiekszac procentowo i bardzo konserwatywnie
-    float wielkoscBaza; // promien bili, zwiekszac raczej procentowo i konserwatywnie, mozna dac limit na np 1.5
-    int hitpunktyBaza; // ilosc punktow zdobyta kiedy ta bila zderza sie z inna
-    int hitscianaBaza; // ilosc punktow zdobyta kiedy ta bila zderza sie ze sciana
-    int monetyBaza; // ilosc monet zdobyta na wbiciu tej bili
-    int hitmonetyBaza; // ilosc monet zdobyta kiedy ta bila z czyms sie zderza
-    // Zmienne w grze
-    float tarcie;
-    float tarciescian;
-    int wartoscPunktowa;
-    float mnoznikPunktowy;
-    float radiusMultipl;
-    int punktyNaUderzeniuKuli;
-    int punktyNaUderzeniuSciany;
-    // Zmienne do działania
-    bool Held = false;
-    bool Put = false;
-    int identifier;
-    vector <int> saveBounces;
-    sf::Vector2f velocity;
-    int rotation;
-    sf::IntRect bounds;
-
-    sf::Sound wallhitSFX;
-    sf::Sound ballhitSFX;
-
-    BilardBall(float radius, const sf::Vector2f& position):
-        sf::CircleShape(radius),
-        velocity(sf::Vector2f(0,0)),
-        bounds(sf::IntRect(0,0,0,0))
-    {
-        setPosition(position);
-        setOrigin(sf::Vector2f(radius,radius));
-        rotation = 0;
-
-        tarcieBaza = 0.125f;
-        tarciescianBaza = 5.f;
-        punktyBaza = 1;
-        mnoznikBaza = 1;
-        wielkoscBaza = 1;
-        hitpunktyBaza = 0;
-        hitscianaBaza = 0;
-        monetyBaza = 1; // na poczatku kazda kula daje 1 monete
-        hitmonetyBaza = 0;
-
-
-        wallhitSFX.setBuffer(g_Audio.wallhitBuffer);
-        wallhitSFX.setVolume(20.f);
-        ballhitSFX.setBuffer(g_Audio.ballhitBuffer);
-        ballhitSFX.setVolume(15.f);
-    }
-
-    void resetStats()
-    {
-        this->tarcie = this->tarcieBaza;
-        this->tarciescian = this->tarciescianBaza;
-        this->wartoscPunktowa = this->punktyBaza;
-        this->mnoznikPunktowy = this->mnoznikBaza;
-        this->radiusMultipl = this->wielkoscBaza;
-        this->punktyNaUderzeniuKuli = this->hitpunktyBaza;
-        this->punktyNaUderzeniuSciany = this->hitscianaBaza;
-    }
-
-    void rob_tarcie(float sila, bool sciana)
-    {
-        if(sciana)
-        {
-            sf::Vector2f velc_po_tarc;
-            velc_po_tarc = sf::Vector2f( this->velocity - ( normal(this->velocity) * this->tarciescian * sila ) );
-            if( this->velocity.x * velc_po_tarc.x < 0 ) velc_po_tarc.x = 0.f;
-            if( this->velocity.y * velc_po_tarc.y < 0 ) velc_po_tarc.y = 0.f;
-            this->setVelocity(velc_po_tarc);
-        }
-        else
-        {
-            sf::Vector2f velc_po_tarc;
-            velc_po_tarc = sf::Vector2f( this->velocity - ( normal(this->velocity) * this->tarcie * sila ) );
-            if( this->velocity.x * velc_po_tarc.x < 0 ) velc_po_tarc.x = 0.f;
-            if( this->velocity.y * velc_po_tarc.y < 0 ) velc_po_tarc.y = 0.f;
-            this->setVelocity(velc_po_tarc);
-        }
-
-    }
-
-    void ballPut()
-    {
-        if(this->identifier != 15)
-        {
-            g_Stats.punktyTejRundy += this->wartoscPunktowa;
-            g_Stats.punktyTejRundy *= this->mnoznikPunktowy;
-            g_Stats.monety+=this->monetyBaza; // ilosc do ustalenia
-            //statystyki do GO
-            g_Stats.monetyGlobalnie+=g_Stats.monety; // ilosc do ustalenia
-            g_Stats.wbiteBileGlobalnie+=1;
-            //
-            this->Put = true;
-            cout<<"Put!"<<endl;
-            cout<<"Aktualne punkty: "<<g_Stats.punktyTejRundy<<endl;
-        }
-        else
-        {
-            this->velocity = sf::Vector2f(0,0);
-            this->setPosition(400,180);
-        }
-
-    }
-
-    void animate(const sf::Time &elapsed, std::vector<BilardBall> &Kule, const std::vector<BilardHole> &Dziury, float tarcieScianGlobal, float tarcieStoluGlobal) {
-
-        const float dt = elapsed.asSeconds();
-        move(dt*velocity.x, dt*velocity.y);
-        rotate(dt*rotation);
-
-        // Spowalnianie przez tarcie
-        this->rob_tarcie(tarcieStoluGlobal, 0);
-
-    }
-
-    void kolizjeDziur(const sf::Time &elapsed, std::vector<BilardBall> &Kule, const std::vector<BilardHole> &Dziury, float tarcieScianGlobal, float tarcieStoluGlobal)
-    {
-        for ( auto &hol : Dziury )
-        {
-            if ( diff( this->getPosition(), hol.getPosition() ) < this->getRadius() + hol.getRadius() )
-            {
-                this->ballPut();
+// funkcja resetujące korzystające z głównego kontenera
+void resetBoard(std::vector<std::unique_ptr<GameObject>>& entities, const std::vector<float>& MiejscaX, const std::vector<float>& MiejscaY, int& shots) {
+    std::cout << "debug - Start resetBoard..." << std::endl;
+    for (auto& obj : entities) {
+        if (auto* bal = dynamic_cast<BilardBall*>(obj.get())) {
+            bal->Put = false;
+            if (bal->identifier >= 0 && bal->identifier < MiejscaX.size()) {
+                bal->setPosition(MiejscaX[bal->identifier], MiejscaY[bal->identifier]);
             }
+            bal->setVelocity(sf::Vector2f(0, 0));
+            bal->resetStats();
         }
-    }
-
-    void kolizjeKul(const sf::Time &elapsed, std::vector<BilardBall> &Kule, const std::vector<BilardHole> &Dziury, float tarcieScianGlobal, float tarcieStoluGlobal)
-    {
-
-        // Sprawdzanie kolizji kul
-        for ( auto &bal : Kule )
-        {
-            if( bal.identifier != this->identifier && !bal.Put && find( bal.saveBounces.begin(), bal.saveBounces.end(), this->identifier) == bal.saveBounces.end() )
-            {
-                if ( diff( this->getPosition(), bal.getPosition() ) < this->getRadius() + bal.getRadius() )
-                {
-                    g_Stats.punktyTejRundy += this->punktyNaUderzeniuKuli;
-                    g_Stats.monety += this->hitmonetyBaza;
-                    g_Stats.monetyGlobalnie+=g_Stats.monety;
-                    bal.saveBounces.emplace_back(this->identifier);
-                    this->ballhitSFX.play();
-                    sf::Vector2f D = this->getPosition() - bal.getPosition();
-                    float d = diff(D);
-                    float delt = this->getRadius() + bal.getRadius() - d;
-                    sf::Vector2f N = normal(D);
-                    this->move( 0.5f * delt * N * 1.05f );
-                    bal.move( -0.5f * delt * N * 1.05f );
-                    float vi = ( bal.velocity.x * N.x ) + ( bal.velocity.y * N.y ) - ( this->velocity.x * N.x ) - ( this->velocity.y * N.y );
-                    if(vi >= 0)
-                    {
-                        this->setVelocity( this->velocity + vi*N );
-                        bal.setVelocity( bal.velocity - vi*N );
-                    }
-                }
-            }
-        }
-
-
-    }
-
-    void kolizjeScian(const sf::Time &elapsed, std::vector<BilardBall> &Kule, const std::vector<BilardHole> &Dziury, float tarcieScianGlobal, float tarcieStoluGlobal)
-    {
-        // Sprawdzenie kolizji ścian
-        if(this->getPosition().x + this->getRadius() > 620)
-        {
-            this->wallhitSFX.play();
-            g_Stats.punktyTejRundy += this->punktyNaUderzeniuSciany;
-            g_Stats.monety += this->hitmonetyBaza;
-            g_Stats.monetyGlobalnie+=g_Stats.monety;
-            this->setVelocity(sf::Vector2f(-1*this->velocity.x, this->velocity.y));
-            this->move(sf::Vector2f(620.f - this->getPosition().x - this->getRadius() - 2, 0));
-            this->rob_tarcie(tarcieScianGlobal, 1);
-        }
-        if(this->getPosition().x - this->getRadius() < 20)
-        {
-            this->wallhitSFX.play();
-            g_Stats.punktyTejRundy += this->punktyNaUderzeniuSciany;
-            g_Stats.monety += this->hitmonetyBaza;
-            g_Stats.monetyGlobalnie+=g_Stats.monety;
-            this->setVelocity(sf::Vector2f(-1*this->velocity.x, this->velocity.y));
-            this->move(sf::Vector2f(20.f - this->getPosition().x + this->getRadius() + 2, 0));
-            this->rob_tarcie(tarcieScianGlobal, 1);
-        }
-        if(this->getPosition().y + this->getRadius() > 334)
-        {
-            this->wallhitSFX.play();
-            g_Stats.punktyTejRundy += this->punktyNaUderzeniuSciany;
-            g_Stats.monety += this->hitmonetyBaza;
-            g_Stats.monetyGlobalnie+=g_Stats.monety;
-            this->setVelocity(sf::Vector2f(this->velocity.x, -1*this->velocity.y));
-            this->move(sf::Vector2f(0, 334.f - this->getPosition().y - this->getRadius() - 2));
-            this->rob_tarcie(tarcieScianGlobal, 1);
-        }
-        if(this->getPosition().y - this->getRadius() < 24)
-        {
-            this->wallhitSFX.play();
-            g_Stats.punktyTejRundy += this->punktyNaUderzeniuSciany;
-            g_Stats.monety += this->hitmonetyBaza;
-            g_Stats.monetyGlobalnie+=g_Stats.monety;
-            this->setVelocity(sf::Vector2f(this->velocity.x, -1*this->velocity.y));
-            this->move(sf::Vector2f(0, 24.f - this->getPosition().y + this->getRadius() + 2));
-            this->rob_tarcie(tarcieScianGlobal, 1);
-        }
-    }
-
-    void cleanBounces()
-    {
-        saveBounces = {};
-    }
-
-    void setVelocity(sf::Vector2f vel)
-    {
-        velocity = vel;
-    }
-
-    bool stationary()
-    {
-        if( abs(this->velocity.x) < 0.1f && abs(this->velocity.y) < 0.1f )
-            return true;
-        if( this->Put )
-            return true;
-        return false;
-    }
-};
-
-void resetKuleForNextRound( std::vector<BilardBall> &Kule, std::vector<float> MiejscaX, std::vector<float> MiejscaY, int &shots  )
-{
-    for( auto &bal : Kule )
-    {
-        bal.Put = false;
-        bal.setPosition( MiejscaX[ &bal - &Kule[0] ], MiejscaY[ &bal - &Kule[0] ] );
-        bal.setVelocity( sf::Vector2f(0,0) );
-        bal.resetStats();
     }
     shots = 0;
     g_Stats.punktyTejRundy = 0;
-    cout<<"* reset board *"<<endl;
+    std::cout << "debug - Koniec resetBoard Pomyslnie ulozono bile." << std::endl;
 }
 
 void mult( std::vector<float> &vec, float num )
@@ -731,16 +92,16 @@ void mult( std::vector<float> &vec, float num )
     }
 }
 
-void resetCalejRozgrywki(std::vector<BilardBall> &Kule,std::vector<float> MiejscaX, std::vector<float> MiejscaY, int &shots)
+void resetCalejRozgrywki(std::vector<std::unique_ptr<GameObject>>& entities, const std::vector<float>& MiejscaX, const std::vector<float>& MiejscaY, int& shots)
 {
-    resetKuleForNextRound(Kule,MiejscaX,MiejscaY,shots);
+    resetBoard(entities, MiejscaX, MiejscaY, shots);
     g_Stats.punktyGlobalnie=0;
     g_Stats.monety=0;
     g_Stats.monetyGlobalnie=0;
     g_Stats.rundy=1;
     g_Stats.wbiteBileGlobalnie=0;
     g_Stats.strzalyGlobalnie=0;
-    std::cout<<"resetujemy runa"<<std::endl;
+    std::cout<<"debug - resetujemy runa"<<std::endl;
 }
 
 int main()
@@ -780,38 +141,41 @@ int main()
     float scaleYsciany = (float)virtualScreen.getSize().y / sciany_stol.getSize().y;
     sciany.setScale(scaleXsciany, scaleYsciany);
 
+    // Jeden kontener obiektow gry
+    std::vector<std::unique_ptr<GameObject>>entities;
+
     // Stworzenie dziur
     vector <float> pozycjedziurX = {320, 320, 24 ,26 , 614 ,614 };
     vector <float> pozycjedziurY = {23,  330, 27 ,328, 26, 330 };
     mult(pozycjedziurX, (float(virtualScreen.getSize().x)/window.getSize().x));
     mult(pozycjedziurY, (float(virtualScreen.getSize().y)/window.getSize().y));
-    vector <BilardHole> Dziury;
     for (int i=0; i<6; i++)
     {
         float radi = 20*(float(virtualScreen.getSize().x)/window.getSize().x);
         sf::Vector2f position(pozycjedziurX[i],pozycjedziurY[i]);
-        Dziury.emplace_back(BilardHole(radi,position));
+        entities.push_back(std::make_unique<BilardHole>(radi, position));
     }
 
     // Stworzenie kul i ustawienie ich
     vector <float> pozycjebazoweX = {240,  162,162,162,162,162,  201,201,201,  220,220,  181,181,181,181,  400};
     vector <float> pozycjebazoweY = {180,  225,202,180,157,135,  157,202,180,  169,191,  146,214,169,191,  180};
-    vector<BilardBall> Kule;
-    for (int i=0; i<16; i++) {
-        float radi = 8*(float(virtualScreen.getSize().x)/window.getSize().x);
-        sf::Vector2f position(pozycjebazoweX[i]*(float(virtualScreen.getSize().x)/window.getSize().x),pozycjebazoweY[i]*(float(virtualScreen.getSize().y)/window.getSize().y));
-        Kule.emplace_back(BilardBall(radi, position));
-        Kule[i].identifier = i;
-        if(i==15)
-        {
-            Kule[i].setFillColor(sf::Color(255,255,255));
-        }
-        else
-        {
-            Kule[i].setFillColor(sf::Color(180,180,180));
-        }
+    for (int i = 0; i < 16; i++) {
+        float radi = 8 * (float(virtualScreen.getSize().x) / window.getSize().x);
+        sf::Vector2f position(pozycjebazoweX[i] * (float(virtualScreen.getSize().x) / window.getSize().x),
+                              pozycjebazoweY[i] * (float(virtualScreen.getSize().y) / window.getSize().y));
+
+        auto ball = std::make_unique<BilardBall>(radi, position, i);
+        if (i == 15) ball->setFillColor(sf::Color(255, 255, 255));
+        else ball->setFillColor(sf::Color(180, 180, 180));
+
+        entities.push_back(std::move(ball));
     }
 
+    // Mapa ekranow
+    std::map<GameState, std::unique_ptr<MenuScreen>> uiScreens;
+    uiScreens[MENU] = std::make_unique<MainMenu>(rozdzielczosc);
+    uiScreens[GAME_OVER] = std::make_unique<GameOverScreen>(rozdzielczosc);
+    uiScreens[SHOP] = std::make_unique<ShopMenu>(rozdzielczosc);
 
     // Zmienne do ulepszeń
     float silaStrzalu = 1;
@@ -842,6 +206,20 @@ int main()
     while (window.isOpen()) {
         sf::Time elapsed = clock.restart();
 
+        // Wskaznik na biala bile
+        BilardBall* whiteBall = nullptr;
+        for (auto& obj : entities)
+        {
+            if (auto* bal = dynamic_cast<BilardBall*>(obj.get()))
+            {
+                if (bal->identifier == 15)
+                {
+                    whiteBall = bal;
+                    break;
+                }
+            }
+        }
+
         // Eventy:
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -859,150 +237,103 @@ int main()
             p = mouse_virtual_pos;
 
 
-            if(currentState==MENU)
+            if(currentState==MENU || currentState == GAME_OVER || currentState == SHOP)
             {
                 if (event.type == sf::Event::MouseMoved)
                 {
-                    glowneMenu.updateHover(mouse_virtual_pos);
+                    uiScreens[currentState]->updateHover(mouse_virtual_pos);
                 }
-                if(event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
-                {
-                    MenuAction akcja = glowneMenu.handleClick(mouse_virtual_pos);
-                    if(akcja==ActionPlay)
-                    {
-                        resetKuleForNextRound(Kule,pozycjebazoweX,pozycjebazoweY,strzaly);
-                        roundIsActive=true;
-                        currentState=PLAYING;
-                    }
-                    else if(akcja==ActionSettings)
-                    {
-                        std::cout<<"kiedys beda ustawienia"<<std::endl;
-                    }
-                    else if(akcja==ActionQuit)
-                    {
-                        window.close();
-                    }
-                }
-            }
-            else if(currentState==GAME_OVER)
-            {
-                if(event.type==sf::Event::MouseMoved)
-                {
-                    ekranPrzegranej.updateHover(mouse_virtual_pos);
-                }
-                if(event.type==sf::Event::MouseButtonPressed&&event.mouseButton.button==sf::Mouse::Left)
-                {
-                    GameOverAction goAkcja = ekranPrzegranej.handleClick(mouse_virtual_pos);
+                if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
+                    int akcja = uiScreens[currentState]->handleClick(mouse_virtual_pos);
 
-                    if(goAkcja==GO_ActionRetry)
+                    if (akcja == 1)
                     {
-                        resetCalejRozgrywki(Kule,pozycjebazoweX,pozycjebazoweY,strzaly);
-                        roundIsActive=true;
-                        currentState=PLAYING;
+                        std::cout << "debug - Przycisk PLAY klikniety" << std::endl;
+                        resetBoard(entities, pozycjebazoweX, pozycjebazoweY, strzaly);
+                        roundIsActive = true; currentState = PLAYING;
                     }
-                    else if(goAkcja==GO_ActionMenu)
+                    else if (akcja == 2) { std::cout << "Ustawienia"<<std::endl; }
+                    else if (akcja == 3) { std::cout << "Zamkniecie okna"<<std::endl; window.close(); }
+                    else if (akcja == 4)
                     {
-                        currentState=MENU;
+                        resetCalejRozgrywki(entities, pozycjebazoweX, pozycjebazoweY, strzaly);
+                        roundIsActive = true; currentState = PLAYING;
                     }
-                }
-            }
-            else if(currentState==SHOP)
-            {
-                if(event.type==sf::Event::MouseMoved)
-                {
-                    ekranSklepu.updateHover(mouse_virtual_pos);
-                }
-                if(event.type==sf::Event::MouseButtonPressed && event.mouseButton.button==sf::Mouse::Left)
-                {
-                    if(ekranSklepu.handleNextClick(mouse_virtual_pos))
+                    else if (akcja == 5) { currentState = MENU; }
+                    else if (akcja == 6)
                     {
                         g_Stats.rundy++;
-                        celPunktow+=1;             // do ustalenia przy optymalizacji
-
-                        resetKuleForNextRound(Kule,pozycjebazoweX,pozycjebazoweY,strzaly);
-                        roundIsActive=true;
-                        currentState=PLAYING;
-
-                        std::cout<<"runda "<<g_Stats.rundy<<std::endl;
+                        celPunktow += 1;
+                        resetBoard(entities, pozycjebazoweX, pozycjebazoweY, strzaly);
+                        roundIsActive = true; currentState = PLAYING;
+                        std::cout << "Runda " << g_Stats.rundy << std::endl;
                     }
                 }
             }
-            else if(currentState==PLAYING){
-                if (event.type == sf::Event::MouseButtonPressed) {
-                    if (event.mouseButton.button == sf::Mouse::Left) {
-
-                        // sf::Vector2i mouse_pos = sf::Mouse::getPosition(window);
-                        // p = window.mapPixelToCoords(mouse_pos, virtualScreen.getView());
-                        // sf::Vector2f pp = window.mapPixelToCoords(mouse_pos);
-                        //std::cout << "Mouse clicked: " << pp.x << ", " << pp.y << std::endl;
-                        //std::cout << "Mouse clicked retro: " << p.x << ", " << p.y << std::endl;
-
-                        // isLeftPressed = true;
-                        // // Tymczasowe włączanie gry
-                        // if(!roundIsActive)
-                        // {
-                        //     resetKuleForNextRound(Kule,pozycjebazoweX,pozycjebazoweY, strzaly);
-                        //     roundIsActive = true;
-                        // }
-
-                        for (auto &bal : Kule)
+            else if (currentState == PLAYING)
+            {
+                if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
+                {
+                    isLeftPressed = true;
+                    for (auto& obj : entities)
+                    {
+                        if (auto* bal = dynamic_cast<BilardBall*>(obj.get()))
                         {
-                            if( square(bal.getPosition().x - p.x) + square(bal.getPosition().y - p.y) < square(bal.getRadius()) )
+                            if (square(bal->getPosition().x - p.x) + square(bal->getPosition().y - p.y) < square(bal->getRadius()))
                             {
-                                bal.Held = true;
-                                if(bal.identifier == 15 && areBallsStationary && strzaly < maxStrzaly)
+                                bal->Held = true;
+                                if (bal->identifier == 15 && areBallsStationary && strzaly < maxStrzaly)
                                 {
-                                    lastHeldBall = bal.identifier;
+                                    lastHeldBall = bal->identifier;
                                 }
-
-                            }
-                            else
+                            } else
                             {
-                                bal.Held = false;
+                                bal->Held = false;
                             }
                         }
                     }
                 }
-                if (event.type == sf::Event::MouseButtonReleased) {
-                    if (event.mouseButton.button == sf::Mouse::Left) {
-                        isLeftPressed = false;
-                        lastHeldBall = -1;
-                        if(isDragging)
-                        {
-                            accelerateWhiteNow = true;
-                        }
-                        isDragging = false;
-                    }
+                if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left)
+                {
+                    isLeftPressed = false;
+                    lastHeldBall = -1;
+                    if (isDragging) accelerateWhiteNow = true;
+                    isDragging = false;
                 }
-                if (event.type == sf::Event::MouseMoved) {
-                    if(isLeftPressed) {
-                        sf::Vector2i mouse_pos = sf::Mouse::getPosition(window);
-                        p = window.mapPixelToCoords(mouse_pos, virtualScreen.getView());
-
-                        for (auto &bal : Kule)
+                if (event.type == sf::Event::MouseMoved && isLeftPressed)
+                {
+                    for (auto& obj : entities)
+                    {
+                        if (auto* bal = dynamic_cast<BilardBall*>(obj.get()))
                         {
-                            float dist_cent = square(bal.getPosition().x - p.x) + square(bal.getPosition().y - p.y);
-                            if( dist_cent < square(bal.getRadius()) )
+                            float d_cent = square(bal->getPosition().x - p.x) + square(bal->getPosition().y - p.y);
+                            if (d_cent < square(bal->getRadius()))
                             {
-                                bal.Held = true;
-                                if(bal.identifier == 15 && areBallsStationary && strzaly < maxStrzaly)
+                                bal->Held = true;
+                                if (bal->identifier == 15 && areBallsStationary && strzaly < maxStrzaly)
                                 {
-                                    lastHeldBall = bal.identifier;
+                                    lastHeldBall = bal->identifier;
                                 }
-                            }
-                            else
+                            } else
                             {
-                                bal.Held = false;
+                                bal->Held = false;
                             }
                         }
                     }
                 }
-
             }
-
         }
             if(currentState==PLAYING)
             {
+                // Check mozliwosci strzalu
+                areBallsStationary = true;
+                for (auto& obj : entities)
+                {
+                    if (auto* bal = dynamic_cast<BilardBall*>(obj.get()))
+                    {
+                        if (!bal->stationary()) areBallsStationary = false;
+                    }
+                }
                 // Zakończenie rundy
                 if( areBallsStationary && strzaly >= maxStrzaly )
                 {
@@ -1012,149 +343,117 @@ int main()
                         // Win
                         roundIsActive = false;
                         currentState=SHOP;
-                        std::cout<<"sklep"<<std::endl;
+                        std::cout<<"Sklep"<<std::endl;
                     }
                     else
                     {
                         // Lose
                         roundIsActive = false;
-                        ekranPrzegranej.updateStats(g_Stats);
+                        auto* goScreen = dynamic_cast<GameOverScreen*>(uiScreens[GAME_OVER].get());
+                        if(goScreen) goScreen->updateStats(g_Stats);
                         currentState=GAME_OVER;
                         std::cout<<"Przegrana"<<std::endl;
                     }
                 }
 
                 // Sprawdzanie czy celujemy
-                dist_cent = square(Kule[15].getPosition().x - p.x) + square(Kule[15].getPosition().y - p.y);
-                dist_cent = sqrt(dist_cent);
-                if (lastHeldBall == 15 && dist_cent > Kule[15].getRadius() + 4 )
+                if (whiteBall)
                 {
-                    isDragging = true;
-                }
-                else
-                {
-                    isDragging = false;
-                }
-
-                // Strzał w białą bilę
-                velc = clamp(dist_cent,5.f,100.f);
-                if(accelerateWhiteNow)
-                {
-                    accelerateWhiteNow = false;
-                    //cout<<"velc = "<<velc<<endl;
-                    addVelocity = sf::Vector2f(0,0);
-                    addVelocity.x = (10*velc/dist_cent)*(Kule[15].getPosition().x-p.x) ;
-                    addVelocity.y = (10*velc/dist_cent)*(Kule[15].getPosition().y-p.y) ;
-                    Kule[15].setVelocity(addVelocity * silaStrzalu);
-                    velc = 0;
-                    strzaly ++;
-                    g_Stats.strzalyGlobalnie++;
-                    cout<<"strzal #"<<strzaly<<endl;
-                }
-
-                // Sprawdzenie czy można strzelać
-                areBallsStationary = true;
-                for (auto &bal : Kule)
-                {
-                    if( !bal.stationary() )
+                    dist_cent = square(whiteBall->getPosition().x - p.x) + square(whiteBall->getPosition().y - p.y);
+                    dist_cent = sqrt(dist_cent);
+                    if (lastHeldBall == 15 && dist_cent > whiteBall->getRadius() + 4 )
                     {
-                        areBallsStationary = false;
+                        isDragging = true;
+                    }
+                    else
+                    {
+                        isDragging = false;
+                    }
+
+                    // Strzał w białą bilę
+                    velc = clamp(dist_cent,5.f,100.f);
+                    if(accelerateWhiteNow)
+                    {
+                        accelerateWhiteNow = false;
+                        //cout<<"velc = "<<velc<<endl;
+                        addVelocity = sf::Vector2f(0,0);
+                        addVelocity.x = (10*velc/dist_cent)*(whiteBall->getPosition().x-p.x) ;
+                        addVelocity.y = (10*velc/dist_cent)*(whiteBall->getPosition().y-p.y) ;
+                        whiteBall->setVelocity(addVelocity * silaStrzalu);
+                        velc = 0;
+                        strzaly ++;
+                        g_Stats.strzalyGlobalnie++;
+                        cout<<"strzal #"<<strzaly<<endl;
                     }
                 }
 
-                // Reset kolizji kul
-                for (auto &bal : Kule)
+                // Fizyka w jednym wektorze
+                for (auto& obj : entities)
                 {
-                    bal.cleanBounces();
+                    if (auto* bal = dynamic_cast<BilardBall*>(obj.get())) bal->cleanBounces();
                 }
-                // Sprawdzenie kolizji kul
-                for (auto &bal : Kule)
+                for (auto& obj : entities)
                 {
-                    if(!bal.Put)
-                        bal.kolizjeKul(elapsed, Kule, Dziury, tarcieScianGlobal, tarcieStoluGlobal);
-                }
-                for (auto &bal : Kule)
-                {
-                    if(!bal.Put)
-                        bal.kolizjeScian(elapsed, Kule, Dziury, tarcieScianGlobal, tarcieStoluGlobal);
-                }
-                for (auto &bal : Kule)
-                {
-                    if(!bal.Put)
+                    if (auto* bal = dynamic_cast<BilardBall*>(obj.get()))
                     {
-                        bal.kolizjeDziur(elapsed, Kule, Dziury, tarcieScianGlobal, tarcieStoluGlobal);
+                        if (!bal->Put) bal->kolizjeKul(elapsed, entities, tarcieScianGlobal, tarcieStoluGlobal);
                     }
                 }
-                // Przemieszczenie kul
-                for (auto &bal : Kule)
+                for (auto& obj : entities)
                 {
-                    if(!bal.Put)
-                        bal.animate(elapsed, Kule, Dziury, tarcieScianGlobal, tarcieStoluGlobal);
+                    if (auto* bal = dynamic_cast<BilardBall*>(obj.get()))
+                    {
+                        if (!bal->Put) bal->kolizjeScian(elapsed, tarcieScianGlobal, tarcieStoluGlobal);
+                    }
+                }
+                for (auto& obj : entities)
+                {
+                    if (auto* bal = dynamic_cast<BilardBall*>(obj.get()))
+                    {
+                        if (!bal->Put) bal->kolizjeDziur(elapsed, entities, tarcieScianGlobal, tarcieStoluGlobal);
+                    }
+                }
+                // Update
+                for (auto& obj : entities)
+                {
+                    obj->update(elapsed);
                 }
             }
 
             // Przygotowanie ekranu do renderowania:
             virtualScreen.clear(currentState==MENU ? sf::Color::White : sf::Color::Black);
 
-            if(currentState==MENU)
-            {
-                virtualScreen.draw(tlo);
-                glowneMenu.draw(virtualScreen);
-            }
-            else if(currentState==GAME_OVER)
-            {
-                virtualScreen.draw(tlo);
-                for (auto &hol : Dziury)
-                    virtualScreen.draw(hol);
-                virtualScreen.draw(sciany);
+            virtualScreen.draw(tlo);
 
-                for (auto &bal : Kule)
-                {
-                    if(!bal.Put)
-                    {
-                        virtualScreen.draw(bal);
-                    }
+            if (currentState == PLAYING || currentState == GAME_OVER) {
+
+                // Rysujemy najpierw dziury, potem ściany, potem bile
+                for (auto& obj : entities) {
+                    if (dynamic_cast<BilardHole*>(obj.get())) obj->draw(virtualScreen);
                 }
 
-                ekranPrzegranej.draw(virtualScreen);
-            }
-            else if(currentState==SHOP)
-            {
-                ekranSklepu.draw(virtualScreen);
-            }
-            else if(currentState==PLAYING)
-            {
-                virtualScreen.draw(tlo);
-                for (auto &hol : Dziury)
-                    virtualScreen.draw(hol);
                 virtualScreen.draw(sciany);
 
-                // Render
-                if(roundIsActive)
-                {
-                    for (auto &bal : Kule)
-                    {
-                        if(!bal.Put)
-                        {
-                            virtualScreen.draw(bal);
-                        }
+                if (roundIsActive || currentState == GAME_OVER) {
+                    for (auto& obj : entities) {
+                        if (dynamic_cast<BilardBall*>(obj.get())) obj->draw(virtualScreen);
                     }
 
-
-                    // Celownik
-                    if(isDragging)
-                    {
-                        if(widocznoscCelu)
-                        {
-                            sf::Vector2f plin;
-                            plin.x = Kule[15].getPosition().x + (2*velc/dist_cent)*(Kule[15].getPosition().x-p.x) ;
-                            plin.y = Kule[15].getPosition().y + (2*velc/dist_cent)*(Kule[15].getPosition().y-p.y) ;
-                            RysujLinie(virtualScreen, Kule[15].getPosition(), plin, 2.f, sf::Color::White);
-                        }
+                    // Linia celownika
+                    if (currentState == PLAYING && isDragging && widocznoscCelu && whiteBall) {
+                        sf::Vector2f plin;
+                        plin.x = whiteBall->getPosition().x + (2 * velc / dist_cent) * (whiteBall->getPosition().x - p.x);
+                        plin.y = whiteBall->getPosition().y + (2 * velc / dist_cent) * (whiteBall->getPosition().y - p.y);
+                        RysujLinie(virtualScreen, whiteBall->getPosition(), plin, 2.f, sf::Color::White);
                     }
                 }
             }
-            // Render w odpowiedniej rozdzielczości:
+
+            // Rysujemy odpowiednie menu (jeśli w nim jesteśmy)
+            if (currentState != PLAYING) {
+                uiScreens[currentState]->draw(virtualScreen);
+            }
+
             virtualScreen.display();
             sf::Sprite screenSprite(virtualScreen.getTexture());
             float scaleX = (float)window.getSize().x / virtualScreen.getSize().x;
@@ -1163,7 +462,6 @@ int main()
             window.clear();
             window.draw(screenSprite);
             window.display();
-
     }
 
 
