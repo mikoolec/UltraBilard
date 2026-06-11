@@ -16,7 +16,11 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(SFML)
 
-add_executable(UltraBilard main.cpp)
+add_executable(UltraBilard main.cpp
+
+    audiomanager.h audiomanager.cpp
+    bilardhole.h bilardhole.cpp
+    gameobject.h)
 
 target_link_libraries(UltraBilard PRIVATE sfml-graphics sfml-window sfml-system sfml-audio)
 

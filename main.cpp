@@ -839,7 +839,6 @@ int main()
     MainMenu glowneMenu(rozdzielczosc);
     GameOverScreen ekranPrzegranej(rozdzielczosc);
     ShopMenu ekranSklepu(rozdzielczosc);
-
     while (window.isOpen()) {
         sf::Time elapsed = clock.restart();
 
