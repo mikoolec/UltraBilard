@@ -5,7 +5,12 @@
 #include <vector>
 #include <string>
 
-// Tymczasowa struktura trzymająca dane przedmiotu w sklepie
+// Stany samego sklepu
+enum ShopSubState {
+    SHOP_MAIN,
+    SHOP_BALL_INVENTORY
+};
+
 struct ShopButton {
     sf::RectangleShape shape;
     std::string nazwa;
@@ -16,27 +21,37 @@ struct ShopButton {
 
 class ShopMenu : public MenuScreen {
 private:
+    ShopSubState currentSubState = SHOP_MAIN;
+
     sf::RectangleShape bg;
     sf::RectangleShape leftPanel;
     sf::RectangleShape rightPanel;
 
-    // Listy kiji oraz bil
     std::vector<ShopButton> cueButtons;
     std::vector<ShopButton> ballButtons;
 
-    // Przycisk Dalej
     sf::RectangleShape btnNextShape;
     sf::Text btnNextText;
 
-    // Tekst środek
     sf::Font font;
     sf::Text titleText;
+
+    // --- ELEMENTY ŚRODKA (EKWIPUNEK) ---
+    sf::RectangleShape currentCueDisplay;
+    sf::ConvexShape currentTriangleDisplay; // Ikona trójkąta
+    sf::Text inventoryText;
+
+    // --- PŁYWAJĄCE OKIENKO (TOOLTIP) ---
+    sf::RectangleShape tooltipBg;
     sf::Text tooltipName;
     sf::Text tooltipDesc;
     sf::Text tooltipPrice;
+    bool showTooltip = false;
 
-    // Zmienna trzymająca wskaźnik na aktualnie najechaną myszką kartę
-    ShopButton* hoveredItem = nullptr;
+    // --- WIDOK SZCZEGÓŁÓW BIL (SUB-STATE) ---
+    sf::RectangleShape darkOverlay;
+    std::vector<sf::CircleShape> inventoryBalls;
+    sf::Text closePromptText;
 
 public:
     ShopMenu(std::pair<int,int> res);
@@ -45,5 +60,4 @@ public:
     int handleClick(sf::Vector2f mousePos) override;
     void draw(sf::RenderTexture& target) override;
 };
-
 #endif // SHOPMENU_H
