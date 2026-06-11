@@ -129,6 +129,15 @@ int main()
     sf::Sprite sciany;
     sciany.setTexture(sciany_stol);
 
+    // Importowanie kija
+    sf::Texture texKij;
+    if (!texKij.loadFromFile("assets//kij.png")) {
+        std::cout << "Blad: Nie znaleziono pliku kij.png!" << std::endl;
+    }
+    texKij.setSmooth(false);
+    sf::Sprite sprKij(texKij);
+    sprKij.setOrigin(0, texKij.getSize().y / 2.0f);
+
     // Dzwieki
     g_Audio.init();
 
@@ -440,11 +449,41 @@ int main()
                     }
 
                     // Linia celownika
-                    if (currentState == PLAYING && isDragging && widocznoscCelu && whiteBall) {
-                        sf::Vector2f plin;
-                        plin.x = whiteBall->getPosition().x + (2 * velc / dist_cent) * (whiteBall->getPosition().x - p.x);
-                        plin.y = whiteBall->getPosition().y + (2 * velc / dist_cent) * (whiteBall->getPosition().y - p.y);
-                        RysujLinie(virtualScreen, whiteBall->getPosition(), plin, 2.f, sf::Color::White);
+                    if (currentState == PLAYING && isDragging && whiteBall)
+                    {
+                        if(widocznoscCelu)
+                        {
+                            sf::Vector2f plin;
+                            plin.x = whiteBall->getPosition().x + (2 * velc / dist_cent) * (whiteBall->getPosition().x - p.x);
+                            plin.y = whiteBall->getPosition().y + (2 * velc / dist_cent) * (whiteBall->getPosition().y - p.y);
+                            RysujLinie(virtualScreen, whiteBall->getPosition(), plin, 2.f, sf::Color::White);
+                        }
+
+
+                    // Rysowanie kija
+                    // Obliczamy wektor od białej bili do myszki
+                    sf::Vector2f kierunekDoMyszki = p - whiteBall->getPosition();
+
+                    // Obzliczamy kąt w stopniach (używamy atan2)
+                    float katKija = std::atan2(kierunekDoMyszki.y, kierunekDoMyszki.x) * 180.f / 3.14159265f;
+                    sprKij.setRotation(katKija);
+
+                    // Efekt "odciągania" kija przy nabieraniu siły
+                    // Normalizujemy wektor (robimy z niego długość 1) i mnożymy przez velc (siłę naciągu)
+                    float dlugosc = std::sqrt(square(kierunekDoMyszki.x) + square(kierunekDoMyszki.y));
+                    if (dlugosc > 0) {
+                        sf::Vector2f znormalizowany = kierunekDoMyszki / dlugosc;
+                        // Odsuwamy kij od bili o wartość siły 'velc'
+                        // Dodajemy też promień bili, żeby kij w nią nie wchodził
+                        sf::Vector2f pozycjaKija = whiteBall->getPosition() + znormalizowany * (velc + whiteBall->getRadius());
+                        sprKij.setPosition(pozycjaKija);
+                    }
+                    else
+                    {
+                        sprKij.setPosition(whiteBall->getPosition());
+                    }
+
+                    virtualScreen.draw(sprKij);
                     }
                 }
             }
