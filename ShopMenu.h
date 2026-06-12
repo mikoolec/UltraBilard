@@ -62,11 +62,16 @@ private:
 
     ShopButton* hoveredItem = nullptr;
 
+    // Refresh button
+    sf::RectangleShape btnRefresh;
+    int kosztRefresha = 10;
+
 public:
     ShopMenu(std::pair<int,int> res);
 
     void updateHover(sf::Vector2f mousePos) override;
     int handleClick(sf::Vector2f mousePos) override;
     void draw(sf::RenderTexture& target) override;
+    void OdswiezPrzedmioty();
 };
 #endif // SHOPMENU_H

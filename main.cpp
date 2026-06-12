@@ -6,6 +6,7 @@
 #include <memory>
 #include <map>
 #include <algorithm>
+#include<ctime>
 
 // nagłówki
 #include "Globals.h"
@@ -106,6 +107,7 @@ void resetCalejRozgrywki(std::vector<std::unique_ptr<GameObject>>& entities, con
 
 int main()
 {
+    srand(time(NULL));
     sf::RenderWindow window(sf::VideoMode(640, 360), "Okno Gry");
 
     // Uzywac tej zmiennej w ustawieniach
@@ -229,6 +231,11 @@ int main()
             }
         }
 
+        int aktualneMaxStrzaly = maxStrzaly; // Baza
+        if (g_Stats.czyPosiada(101)) {
+            aktualneMaxStrzaly += 3;
+        }
+
         // Eventy:
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -291,7 +298,7 @@ int main()
                             if (square(bal->getPosition().x - p.x) + square(bal->getPosition().y - p.y) < square(bal->getRadius()))
                             {
                                 bal->Held = true;
-                                if (bal->identifier == 15 && areBallsStationary && strzaly < maxStrzaly)
+                                if (bal->identifier == 15 && areBallsStationary && strzaly < aktualneMaxStrzaly)
                                 {
                                     lastHeldBall = bal->identifier;
                                 }
@@ -319,7 +326,7 @@ int main()
                             if (d_cent < square(bal->getRadius()))
                             {
                                 bal->Held = true;
-                                if (bal->identifier == 15 && areBallsStationary && strzaly < maxStrzaly)
+                                if (bal->identifier == 15 && areBallsStationary && strzaly < aktualneMaxStrzaly)
                                 {
                                     lastHeldBall = bal->identifier;
                                 }
@@ -344,7 +351,7 @@ int main()
                     }
                 }
                 // Zakończenie rundy
-                if( areBallsStationary && strzaly >= maxStrzaly )
+                if( areBallsStationary && strzaly >= aktualneMaxStrzaly )
                 {
                     g_Stats.punktyGlobalnie += g_Stats.punktyTejRundy;
                     if( g_Stats.punktyTejRundy >= celPunktow )
@@ -352,6 +359,10 @@ int main()
                         // Win
                         roundIsActive = false;
                         currentState=SHOP;
+                        if (auto* sklep = dynamic_cast<ShopMenu*>(uiScreens[SHOP].get()))
+                        {
+                            sklep->OdswiezPrzedmioty();
+                        }
                         std::cout<<"Sklep"<<std::endl;
                     }
                     else
@@ -388,7 +399,11 @@ int main()
                         addVelocity = sf::Vector2f(0,0);
                         addVelocity.x = (10*velc/dist_cent)*(whiteBall->getPosition().x-p.x) ;
                         addVelocity.y = (10*velc/dist_cent)*(whiteBall->getPosition().y-p.y) ;
-                        whiteBall->setVelocity(addVelocity * silaStrzalu);
+                        float aktualnaSila = silaStrzalu;
+                        if (g_Stats.czyPosiada(102)) {
+                            aktualnaSila *= 1.30f; // + 30% siły
+                        }
+                        whiteBall->setVelocity(addVelocity * aktualnaSila);
                         velc = 0;
                         strzaly ++;
                         g_Stats.strzalyGlobalnie++;
@@ -453,6 +468,11 @@ int main()
                     {
                         if(widocznoscCelu)
                         {
+                            float mnoznikCelownika = 2.0f; // Bazowa długość
+                            if (g_Stats.czyPosiada(100)) {
+                                mnoznikCelownika *= 2.0f; // Snajper: 2x dłuższa linia
+                            }
+
                             sf::Vector2f plin;
                             plin.x = whiteBall->getPosition().x + (2 * velc / dist_cent) * (whiteBall->getPosition().x - p.x);
                             plin.y = whiteBall->getPosition().y + (2 * velc / dist_cent) * (whiteBall->getPosition().y - p.y);

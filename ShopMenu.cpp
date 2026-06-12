@@ -57,6 +57,13 @@ ShopMenu::ShopMenu(std::pair<int,int> res) {
     currentTriangleDisplay.setFillColor(sf::Color(100, 100, 100));
     currentTriangleDisplay.setPosition(res.first/2.0f, 220);
 
+    // Refresh
+    btnRefresh.setSize(sf::Vector2f(150, 40));
+    btnRefresh.setPosition(35, res.second - 80);
+    btnRefresh.setFillColor(sf::Color(100, 100, 200));
+
+    OdswiezPrzedmioty();
+
     // Upgrady
     std::vector<Upgrade> kijeBaza;
     std::vector<Upgrade> bileBaza;
@@ -73,44 +80,6 @@ ShopMenu::ShopMenu(std::pair<int,int> res) {
     // Wybieramy pierwsze 3 kije i 4 bile
     for(int i = 0; i < 3; i++) wylosowaneKije.push_back(kijeBaza[i]);
     for(int i = 0; i < 4; i++) wylosowaneBile.push_back(bileBaza[i]);
-
-    // przyciski sklep
-    // przyciski kije
-    int startY = 110;
-    for(int i = 0; i < wylosowaneKije.size(); i++)
-    {
-        ShopButton btn;
-        btn.shape.setSize(sf::Vector2f(140, 50));
-        btn.shape.setOrigin(70, 25);
-        btn.shape.setPosition(110, startY + (i * 70));
-        btn.shape.setFillColor(sf::Color(150, 150, 150));
-
-        // dane z losowych kiji
-        btn.nazwa = wylosowaneKije[i].nazwa;
-        btn.opis = wylosowaneKije[i].opis;
-        btn.cena = wylosowaneKije[i].cena;
-
-        cueButtons.push_back(btn);
-    }
-
-    // przyciski bile
-    for(int i = 0; i < wylosowaneBile.size(); i++)
-    {
-        ShopButton btn;
-        btn.shape.setSize(sf::Vector2f(60, 60));
-        btn.shape.setOrigin(30, 30);
-        int col = i % 2;
-        int row = i / 2;
-        btn.shape.setPosition(490 + (col * 80), 140 + (row * 80));
-        btn.shape.setFillColor(sf::Color(150, 150, 150));
-
-        // dane z losowych bil
-        btn.nazwa = wylosowaneBile[i].nazwa;
-        btn.opis = wylosowaneBile[i].opis;
-        btn.cena = wylosowaneBile[i].cena;
-
-        ballButtons.push_back(btn);
-    }
 
     // Przycisk next
     btnNextShape.setSize(sf::Vector2f(160, 40)); btnNextShape.setOrigin(80, 20);
@@ -156,6 +125,99 @@ ShopMenu::ShopMenu(std::pair<int,int> res) {
     }
 
 }
+
+void ShopMenu::OdswiezPrzedmioty()
+{
+    ballButtons.clear();
+    cueButtons.clear();
+
+    wylosowaneKije.clear();
+    wylosowaneBile.clear();
+
+
+    std::vector<Upgrade> dostepneKije;
+    std::vector<Upgrade> dostepneBile;
+
+    // Krok A: Filtrujemy bazę na dwie kategorie i ODRZUCAMY kupione
+    for (int i = 0; i < PelnaBazaUlepszen.size(); i++) {
+        // Zabezpieczenie 1: Pomijamy przedmioty, które gracz już ma w ekwipunku
+        if (g_Stats.czyPosiada(PelnaBazaUlepszen[i].id)) {
+            continue;
+        }
+
+        if (PelnaBazaUlepszen[i].rodzaj == 0) {
+            dostepneKije.push_back(PelnaBazaUlepszen[i]);
+        } else if (PelnaBazaUlepszen[i].rodzaj == 1) {
+            dostepneBile.push_back(PelnaBazaUlepszen[i]);
+        }
+    }
+
+    // Krok B: Losujemy 3 kije (bez powtórzeń)
+    for (int i = 0; i < 3; i++) {
+        if (dostepneKije.empty()) break; // Zabezpieczenie: przerywamy, jeśli gracz wykupił już wszystkie kije z gry
+
+        int losowyIndex = rand() % dostepneKije.size();
+        wylosowaneKije.push_back(dostepneKije[losowyIndex]);
+
+        // Zabezpieczenie 2: Usuwamy kij z tymczasowej puli, żeby nie wylosować go drugi raz w tym samym sklepie
+        dostepneKije.erase(dostepneKije.begin() + losowyIndex);
+    }
+
+    // Krok C: Losujemy 4 bile (bez powtórzeń)
+    for (int i = 0; i < 4; i++) {
+        if (dostepneBile.empty()) break; // Zabezpieczenie przed brakiem bil
+
+        int losowyIndex = rand() % dostepneBile.size();
+        wylosowaneBile.push_back(dostepneBile[losowyIndex]);
+
+        // Usuwamy bilę z tymczasowej puli
+        dostepneBile.erase(dostepneBile.begin() + losowyIndex);
+    }
+
+
+    // przyciski sklep
+    // przyciski kije
+    int startY = 110;
+    for(int i = 0; i < wylosowaneKije.size(); i++)
+    {
+        ShopButton btn;
+        btn.shape.setSize(sf::Vector2f(140, 50));
+        btn.shape.setOrigin(70, 25);
+        btn.shape.setPosition(110, startY + (i * 70));
+        btn.shape.setFillColor(sf::Color(150, 150, 150));
+
+        // dane z losowych kiji
+        btn.nazwa = wylosowaneKije[i].nazwa;
+        btn.opis = wylosowaneKije[i].opis;
+        btn.cena = wylosowaneKije[i].cena;
+        btn.id = wylosowaneKije[i].id;
+        btn.kupiony=false;
+
+        cueButtons.push_back(btn);
+    }
+
+    // przyciski bile
+    for(int i = 0; i < wylosowaneBile.size(); i++)
+    {
+        ShopButton btn;
+        btn.shape.setSize(sf::Vector2f(60, 60));
+        btn.shape.setOrigin(30, 30);
+        int col = i % 2;
+        int row = i / 2;
+        btn.shape.setPosition(490 + (col * 80), 140 + (row * 80));
+        btn.shape.setFillColor(sf::Color(150, 150, 150));
+
+        // dane z losowych bil
+        btn.nazwa = wylosowaneBile[i].nazwa;
+        btn.opis = wylosowaneBile[i].opis;
+        btn.cena = wylosowaneBile[i].cena;
+        btn.id = wylosowaneBile[i].id;
+        btn.kupiony=false;
+
+        ballButtons.push_back(btn);
+    }
+}
+
 
 void ShopMenu::updateHover(sf::Vector2f mousePos)
 {
@@ -215,7 +277,35 @@ void ShopMenu::updateHover(sf::Vector2f mousePos)
         // Sprawdzanie obecnego kija na środku
         if(currentCueDisplay.getGlobalBounds().contains(mousePos))
         {
-            tooltipName.setString("Zwykly Kij"); tooltipDesc.setString("Twoj obecny sprzet"); tooltipPrice.setString("");
+            extern std::vector<Upgrade> PelnaBazaUlepszen; // Dostęp do bazy
+
+            tooltipName.setString("Twoj Kij");
+
+            // Budujemy wielolinijkowy tekst z ulepszeniami
+            std::string listaUlepszen = "";
+            int iloscKijow = 0;
+
+            for (int id : g_Stats.posiadaneUpgradeID)
+            {
+                if (id < 200) // Wyłapujemy tylko kije
+                {
+                    for (const auto& upg : PelnaBazaUlepszen) {
+                        if (upg.id == id) {
+                            listaUlepszen += "- " + upg.nazwa + "\n";
+                            iloscKijow++;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Jeśli nie mamy nic, dajemy domyślny opis
+            if (iloscKijow == 0) {
+                listaUlepszen = "Brak ulepszen. Podstawowy sprzet.";
+            }
+
+            tooltipDesc.setString(listaUlepszen);
+            tooltipPrice.setString("");
             showTooltip = true;
         }
 
@@ -245,26 +335,43 @@ void ShopMenu::updateHover(sf::Vector2f mousePos)
         float tooltipY = mousePos.y + 15;
 
         float maxWidth = std::max({tooltipName.getLocalBounds().width, tooltipDesc.getLocalBounds().width, tooltipPrice.getLocalBounds().width});
-        float height = tooltipPrice.getString().isEmpty() ? 45 : 65;
+        float descHeight = tooltipDesc.getLocalBounds().height;
 
-        // Zabezpieczenie przed uciekaniem w prawo
+        // 35 to miejsce na tytuł, górny i dolny margines
+        float totalHeight = 35 + descHeight;
+
+        // Jeśli jest cena, dodajemy na nią kolejne 20 pikseli
+        if (!tooltipPrice.getString().isEmpty()) {
+            totalHeight += 20;
+        }
+
+        // 2. ZABEZPIECZENIA PRZED UCIECZKĄ Z EKRANU
         if (tooltipX + maxWidth + 10 > 640)
         {
             tooltipX = mousePos.x - maxWidth - 25;
         }
 
-        // Zabezpieczenie przed uciekaniem w dół pod ekran
-        if (tooltipY + height + 10 > 360)
+        if (tooltipY + totalHeight + 10 > 360)
         {
-            tooltipY = mousePos.y - height - 15;
+            // Przesuwamy w górę o całą CAŁĄ nową wysokość
+            tooltipY = mousePos.y - totalHeight - 15;
+        }
+        if (tooltipY < 5)
+        {
+            tooltipY = 5;
         }
 
-        tooltipName.setPosition(tooltipX + 5, tooltipY + 5);
-        tooltipDesc.setPosition(tooltipX + 5, tooltipY + 25);
-        tooltipPrice.setPosition(tooltipX + 5, tooltipY + 45);
-
+        // 3. USTAWIENIE POZYCJI ELEMENTÓW
         tooltipBg.setPosition(tooltipX, tooltipY);
-        tooltipBg.setSize(sf::Vector2f(maxWidth + 10, height));
+        tooltipBg.setSize(sf::Vector2f(maxWidth + 10, totalHeight));
+
+        tooltipName.setPosition(tooltipX + 5, tooltipY + 5);
+        tooltipDesc.setPosition(tooltipX + 5, tooltipY + 25); // Zawsze zaraz pod tytułem
+
+        // Jeśli jest cena, musi "uciec" pod rozciągnięty opis
+        if (!tooltipPrice.getString().isEmpty()) {
+            tooltipPrice.setPosition(tooltipX + 5, tooltipY + 30 + descHeight);
+        }
     }
 }
 
@@ -285,13 +392,15 @@ int ShopMenu::handleClick(sf::Vector2f mousePos)
             if (hoveredItem->kupiony) {
                 std::cout << "Sklep - Posiadasz juz ten przedmiot" << std::endl;
             }
-            else if (g_Stats.kupUlepszenie(hoveredItem->cena))
+            else if (g_Stats.kupUlepszenie(hoveredItem->cena, hoveredItem->id))
             {
                 std::cout << "Sklep - Kupiono: " << hoveredItem->nazwa << "! Pozostalo monet: " << g_Stats.monety << std::endl;
                 hoveredItem->kupiony = true;
-                g_Stats.dodajUpgrade(hoveredItem->id); // dodajemy id do inventory
                 hoveredItem->shape.setFillColor(sf::Color(50, 150, 50));
-                // TODO check itemow konkretnych
+                if (hoveredItem->id >= 200) {
+                    currentSubState = SHOP_BALL_INVENTORY;
+                    // Gdy gracz kupi ulepszenie bili, ekran od razu przechodzi w tryb wyboru z trójkątem
+                }
             }
             else
             {
@@ -303,7 +412,18 @@ int ShopMenu::handleClick(sf::Vector2f mousePos)
         // Zamknięcie pod-menu bil po kliknięciu gdziekolwiek indziej niż w bile (albo po prostu gdziekolwiek)
         currentSubState = SHOP_MAIN;
     }
-
+    if (btnRefresh.getGlobalBounds().contains(mousePos))
+    {
+        if (g_Stats.monety >= kosztRefresha) {
+            g_Stats.monety -= kosztRefresha;
+            OdswiezPrzedmioty(); // Magia - losujemy nowe itemy!
+            std::cout << "Kupiono Reroll za " << kosztRefresha << " monet!" << std::endl;
+        }
+        else
+        {
+            std::cout << "Brak monet na Reroll!" << std::endl;
+        }
+    }
     return 0;
 }
 
@@ -322,6 +442,8 @@ void ShopMenu::draw(sf::RenderTexture& target) {
         target.draw(currentCueDisplay);
         target.draw(currentTriangleDisplay);
 
+
+
         target.draw(btnNextShape); target.draw(btnNextText);
     }
     else if (currentSubState == SHOP_BALL_INVENTORY) {
@@ -333,6 +455,8 @@ void ShopMenu::draw(sf::RenderTexture& target) {
         target.draw(closePromptText);
     }
 
+    target.draw(btnRefresh);
+
     // Pływające okienko rysujemy NA SAMEJ GÓRZE wszystkiego
     if (showTooltip) {
         target.draw(tooltipBg);
@@ -340,5 +464,7 @@ void ShopMenu::draw(sf::RenderTexture& target) {
         target.draw(tooltipDesc);
         if (!tooltipPrice.getString().isEmpty()) target.draw(tooltipPrice);
     }
+
 }
+
 

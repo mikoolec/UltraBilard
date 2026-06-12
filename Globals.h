@@ -2,6 +2,7 @@
 #define GLOBALS_H
 #pragma once
 #include<vector>
+#include<map>
 
 enum GameState {
     MENU,
@@ -13,21 +14,21 @@ enum GameState {
 struct GameStats {
     int punktyTejRundy = 0;
     int punktyGlobalnie = 0;
-    int monety = 100;                                                   // do wyzerowania!!!!!!!!
+    int monety = 1000;                                                   // do wyzerowania!!!!!!!!
     int monetyGlobalnie = 0;
     int rundy = 1;
     int wbiteBileGlobalnie = 0;
     int strzalyGlobalnie = 0;
     std::vector<int> posiadaneUpgradeID;
+    std::map<int, std::vector<int>> ulepszeniaBil;
 
-    bool kupUlepszenie(int cena)
-    {
-        if (monety >= cena)
-        {
+    bool kupUlepszenie(int cena, int id) {
+        if (monety >= cena) {
             monety -= cena;
-            return true; // Zakup udany
+            posiadaneUpgradeID.push_back(id); // dodaje item do eq
+            return true;
         }
-        return false; // Brak środków
+        return false;
     }
 
     void dodajUpgrade(int id)
@@ -37,9 +38,12 @@ struct GameStats {
 
     bool czyPosiada(int id)
     {
-        for(int posiadaneID : posiadaneUpgradeID)
+        if (id < 200)
         {
-            if(posiadaneID == id) return true;
+            for(int posiadaneID : posiadaneUpgradeID)
+            {
+                if(posiadaneID == id) return true;
+            }
         }
         return false;
     }
