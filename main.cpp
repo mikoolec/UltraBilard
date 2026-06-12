@@ -141,14 +141,9 @@ int main()
     sf::Sprite sciany;
     sciany.setTexture(sciany_stol);
 
-    // Importowanie lodowego tla:
-    sf::Texture lod_stolu;
-    if (!lod_stolu.loadFromFile("assets//lod.png") && !lod_stolu.loadFromFile("lod.png")) {
-        std::cout << "Blad: Nie znaleziono pliku lod.png!" << std::endl;
-    }
-    lod_stolu.setSmooth(false);
-    sf::Sprite lodTlo;
-    lodTlo.setTexture(lod_stolu);
+    // Efekt lodu na istniejacym tle stolu
+    sf::RectangleShape lodVisual(sf::Vector2f(rozdzielczosc.first, rozdzielczosc.second));
+    lodVisual.setFillColor(sf::Color(70, 165, 255, 115));
 
     // Importowanie kija
     sf::Texture texKij;
@@ -170,11 +165,6 @@ int main()
     float scaleXsciany = (float)virtualScreen.getSize().x / sciany_stol.getSize().x;
     float scaleYsciany = (float)virtualScreen.getSize().y / sciany_stol.getSize().y;
     sciany.setScale(scaleXsciany, scaleYsciany);
-    if (lod_stolu.getSize().x > 0 && lod_stolu.getSize().y > 0) {
-        float scaleXlod = (float)virtualScreen.getSize().x / lod_stolu.getSize().x;
-        float scaleYlod = (float)virtualScreen.getSize().y / lod_stolu.getSize().y;
-        lodTlo.setScale(scaleXlod, scaleYlod);
-    }
 
     // Jeden kontener obiektow gry
     std::vector<std::unique_ptr<GameObject>>entities;
@@ -512,10 +502,9 @@ int main()
             // Przygotowanie ekranu do renderowania:
             virtualScreen.clear(currentState==MENU ? sf::Color::White : sf::Color::Black);
 
+            virtualScreen.draw(tlo);
             if ((currentState == PLAYING || currentState == GAME_OVER) && levelManager.obecnyBoss == BossType::Ice) {
-                virtualScreen.draw(lodTlo);
-            } else {
-                virtualScreen.draw(tlo);
+                virtualScreen.draw(lodVisual);
             }
 
             if (currentState == PLAYING || currentState == GAME_OVER) {
