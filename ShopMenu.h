@@ -19,6 +19,7 @@ struct ShopButton {
     int cena;
     bool isHovered = false;
     bool kupiony = false;
+    int id;
 };
 
 class ShopMenu : public MenuScreen {

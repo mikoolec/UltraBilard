@@ -1,6 +1,7 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 #pragma once
+#include<vector>
 
 enum GameState {
     MENU,
@@ -17,13 +18,30 @@ struct GameStats {
     int rundy = 1;
     int wbiteBileGlobalnie = 0;
     int strzalyGlobalnie = 0;
+    std::vector<int> posiadaneUpgradeID;
 
-    bool kupUlepszenie(int cena) {
-        if (monety >= cena) {
+    bool kupUlepszenie(int cena)
+    {
+        if (monety >= cena)
+        {
             monety -= cena;
             return true; // Zakup udany
         }
         return false; // Brak środków
+    }
+
+    void dodajUpgrade(int id)
+    {
+        posiadaneUpgradeID.push_back(id);
+    }
+
+    bool czyPosiada(int id)
+    {
+        for(int posiadaneID : posiadaneUpgradeID)
+        {
+            if(posiadaneID == id) return true;
+        }
+        return false;
     }
 };
 

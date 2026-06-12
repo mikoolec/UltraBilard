@@ -170,7 +170,9 @@ void ShopMenu::updateHover(sf::Vector2f mousePos)
             {
                 if(!btn.kupiony) btn.shape.setFillColor(sf::Color(200, 200, 200));
                 hoveredItem = &btn;
-                tooltipName.setString(btn.nazwa); tooltipDesc.setString(btn.opis); tooltipPrice.setString("Cena: " + std::to_string(btn.cena));
+                tooltipName.setString(btn.nazwa);
+                tooltipDesc.setString(btn.opis);
+                tooltipPrice.setString("Cena: " + std::to_string(btn.cena));
                 showTooltip = true;
             }
             else
@@ -287,6 +289,7 @@ int ShopMenu::handleClick(sf::Vector2f mousePos)
             {
                 std::cout << "Sklep - Kupiono: " << hoveredItem->nazwa << "! Pozostalo monet: " << g_Stats.monety << std::endl;
                 hoveredItem->kupiony = true;
+                g_Stats.dodajUpgrade(hoveredItem->id); // dodajemy id do inventory
                 hoveredItem->shape.setFillColor(sf::Color(50, 150, 50));
                 // TODO check itemow konkretnych
             }
