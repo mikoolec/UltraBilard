@@ -31,9 +31,9 @@ void HUD::rysujBelke(sf::RenderTexture& target, sf::Vector2f pozycja, const std:
     target.draw(napis);
 }
 
-void HUD::draw(sf::RenderTexture& target, int aktualneMaxStrzaly, int strzaly, int celPunktow) {
+void HUD::draw(sf::RenderTexture& target, int aktualneMaxStrzaly, int strzaly, int celPunktow, const std::string& etykietaRundy) {
     int pozostaleStrzaly = std::max(0, aktualneMaxStrzaly - strzaly);
-    rysujBelke(target, sf::Vector2f(8.f, 5.f), "RUNDA: " + std::to_string(g_Stats.rundy), sf::Color(105, 180, 255));
+    rysujBelke(target, sf::Vector2f(8.f, 5.f), etykietaRundy, sf::Color(105, 180, 255));
     rysujBelke(target, sf::Vector2f(160.f, 5.f), "STRZALY: " + std::to_string(pozostaleStrzaly), sf::Color(255, 220, 105));
     rysujBelke(target, sf::Vector2f(312.f, 5.f), "PKT: " + std::to_string(g_Stats.punktyTejRundy) + "/" + std::to_string(celPunktow), sf::Color(120, 230, 155));
     rysujBelke(target, sf::Vector2f(464.f, 5.f), "MONETY: " + std::to_string(g_Stats.monety), sf::Color(255, 190, 70));

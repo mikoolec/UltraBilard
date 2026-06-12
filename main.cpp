@@ -141,6 +141,15 @@ int main()
     sf::Sprite sciany;
     sciany.setTexture(sciany_stol);
 
+    // Importowanie lodowego tla:
+    sf::Texture lod_stolu;
+    if (!lod_stolu.loadFromFile("assets//lod.png") && !lod_stolu.loadFromFile("lod.png")) {
+        std::cout << "Blad: Nie znaleziono pliku lod.png!" << std::endl;
+    }
+    lod_stolu.setSmooth(false);
+    sf::Sprite lodTlo;
+    lodTlo.setTexture(lod_stolu);
+
     // Importowanie kija
     sf::Texture texKij;
     if (!texKij.loadFromFile("assets//kij.png")) {
@@ -161,6 +170,11 @@ int main()
     float scaleXsciany = (float)virtualScreen.getSize().x / sciany_stol.getSize().x;
     float scaleYsciany = (float)virtualScreen.getSize().y / sciany_stol.getSize().y;
     sciany.setScale(scaleXsciany, scaleYsciany);
+    if (lod_stolu.getSize().x > 0 && lod_stolu.getSize().y > 0) {
+        float scaleXlod = (float)virtualScreen.getSize().x / lod_stolu.getSize().x;
+        float scaleYlod = (float)virtualScreen.getSize().y / lod_stolu.getSize().y;
+        lodTlo.setScale(scaleXlod, scaleYlod);
+    }
 
     // Jeden kontener obiektow gry
     std::vector<std::unique_ptr<GameObject>>entities;
@@ -498,7 +512,11 @@ int main()
             // Przygotowanie ekranu do renderowania:
             virtualScreen.clear(currentState==MENU ? sf::Color::White : sf::Color::Black);
 
-            virtualScreen.draw(tlo);
+            if ((currentState == PLAYING || currentState == GAME_OVER) && levelManager.obecnyBoss == BossType::Ice) {
+                virtualScreen.draw(lodTlo);
+            } else {
+                virtualScreen.draw(tlo);
+            }
 
             if (currentState == PLAYING || currentState == GAME_OVER) {
 
@@ -590,7 +608,11 @@ int main()
 
             // Hud
             if (currentState == PLAYING) {
-                hud.draw(virtualScreen, aktualneMaxStrzaly, strzaly, levelManager.celPunktow);
+                std::string etykietaRundy = "RUNDA: " + std::to_string(g_Stats.rundy);
+                if (levelManager.obecnyBoss != BossType::None) {
+                    etykietaRundy = "Boss#" + std::to_string(g_Stats.rundy / 5);
+                }
+                hud.draw(virtualScreen, aktualneMaxStrzaly, strzaly, levelManager.celPunktow, etykietaRundy);
             }
 
             virtualScreen.display();

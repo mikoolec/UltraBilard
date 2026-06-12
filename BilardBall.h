@@ -17,6 +17,7 @@ public:
     // Zmienne w grze
     float tarcie, tarciescian, radiusMultipl, mnoznikPunktowy;
     int wartoscPunktowa, punktyNaUderzeniuKuli, punktyNaUderzeniuSciany;
+    float aktywneTarcieStolu = 1.0f;
 
     // Zmienne stanu
     bool Held = false;
