@@ -2,6 +2,7 @@
 #define SHOPMENU_H
 #pragma once
 #include "MenuScreen.h"
+#include "Upgrades.h"
 #include <vector>
 #include <string>
 
@@ -36,22 +37,26 @@ private:
     sf::Font font;
     sf::Text titleText;
 
-    // --- ELEMENTY ŚRODKA (EKWIPUNEK) ---
+    // Srodkowe elementy
     sf::RectangleShape currentCueDisplay;
     sf::ConvexShape currentTriangleDisplay; // Ikona trójkąta
     sf::Text inventoryText;
 
-    // --- PŁYWAJĄCE OKIENKO (TOOLTIP) ---
+    // Plywajace okno
     sf::RectangleShape tooltipBg;
     sf::Text tooltipName;
     sf::Text tooltipDesc;
     sf::Text tooltipPrice;
     bool showTooltip = false;
 
-    // --- WIDOK SZCZEGÓŁÓW BIL (SUB-STATE) ---
+    // Szczegoly bil
     sf::RectangleShape darkOverlay;
     std::vector<sf::CircleShape> inventoryBalls;
     sf::Text closePromptText;
+
+    // Losowanie sklepu
+    std::vector<Upgrade> wylosowaneKije;
+    std::vector<Upgrade> wylosowaneBile;
 
 public:
     ShopMenu(std::pair<int,int> res);

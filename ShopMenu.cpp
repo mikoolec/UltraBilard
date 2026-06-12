@@ -1,6 +1,8 @@
 #include "ShopMenu.h"
 #include "Globals.h"
 #include <iostream>
+#include<algorithm>
+#include<random>
 
 ShopMenu::ShopMenu(std::pair<int,int> res) {
     // Tła i panele
@@ -54,28 +56,58 @@ ShopMenu::ShopMenu(std::pair<int,int> res) {
     currentTriangleDisplay.setFillColor(sf::Color(100, 100, 100));
     currentTriangleDisplay.setPosition(res.first/2.0f, 220);
 
+    // Upgrady
+    std::vector<Upgrade> kijeBaza;
+    std::vector<Upgrade> bileBaza;
+    for(auto& u : PelnaBazaUlepszen) {
+        if(u.rodzaj == 0) kijeBaza.push_back(u);
+        else bileBaza.push_back(u);
+    }
+
+    // Losowanie upgradow
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(kijeBaza.begin(), kijeBaza.end(), g);
+    std::shuffle(bileBaza.begin(), bileBaza.end(), g);
+    // Wybieramy pierwsze 3 kije i 4 bile
+    for(int i = 0; i < 3; i++) wylosowaneKije.push_back(kijeBaza[i]);
+    for(int i = 0; i < 4; i++) wylosowaneBile.push_back(bileBaza[i]);
+
     // przyciski sklep
-    std::vector<std::string> cueNames = {"1", "2", "3"};
-    std::vector<std::string> cueDescs = {"a", "b", "c"};
+    // przyciski kije
     int startY = 110;
-    for(int i = 0; i < 3; i++)
+    for(int i = 0; i < wylosowaneKije.size(); i++)
     {
         ShopButton btn;
-        btn.shape.setSize(sf::Vector2f(140, 50)); btn.shape.setOrigin(70, 25);
-        btn.shape.setPosition(110, startY + (i * 70)); btn.shape.setFillColor(sf::Color(150, 150, 150));
-        btn.nazwa = cueNames[i]; btn.opis = cueDescs[i]; btn.cena = 50 + (i * 25);
+        btn.shape.setSize(sf::Vector2f(140, 50));
+        btn.shape.setOrigin(70, 25);
+        btn.shape.setPosition(110, startY + (i * 70));
+        btn.shape.setFillColor(sf::Color(150, 150, 150));
+
+        // dane z losowych kiji
+        btn.nazwa = wylosowaneKije[i].nazwa;
+        btn.opis = wylosowaneKije[i].opis;
+        btn.cena = wylosowaneKije[i].cena;
+
         cueButtons.push_back(btn);
     }
 
-    std::vector<std::string> ballNames = {"1", "2", "3", "4"};
-    std::vector<std::string> ballDescs = {"a", "b", "c", "d"};
-    for(int i = 0; i < 4; i++)
+    // przyciski bile
+    for(int i = 0; i < wylosowaneBile.size(); i++)
     {
         ShopButton btn;
-        btn.shape.setSize(sf::Vector2f(60, 60)); btn.shape.setOrigin(30, 30);
-        int col = i % 2; int row = i / 2;
-        btn.shape.setPosition(490 + (col * 80), 140 + (row * 80)); btn.shape.setFillColor(sf::Color(150, 150, 150));
-        btn.nazwa = ballNames[i]; btn.opis = ballDescs[i]; btn.cena = 30 + (i * 10);
+        btn.shape.setSize(sf::Vector2f(60, 60));
+        btn.shape.setOrigin(30, 30);
+        int col = i % 2;
+        int row = i / 2;
+        btn.shape.setPosition(490 + (col * 80), 140 + (row * 80));
+        btn.shape.setFillColor(sf::Color(150, 150, 150));
+
+        // dane z losowych bil
+        btn.nazwa = wylosowaneBile[i].nazwa;
+        btn.opis = wylosowaneBile[i].opis;
+        btn.cena = wylosowaneBile[i].cena;
+
         ballButtons.push_back(btn);
     }
 
@@ -121,6 +153,7 @@ ShopMenu::ShopMenu(std::pair<int,int> res) {
             ballCount++;
         }
     }
+
 }
 
 void ShopMenu::updateHover(sf::Vector2f mousePos)
