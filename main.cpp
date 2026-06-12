@@ -7,6 +7,9 @@
 #include <map>
 #include <algorithm>
 #include<ctime>
+#include <cmath>
+#include <cstdlib>
+#include <string>
 
 // nagłówki
 #include "Globals.h"
@@ -19,6 +22,8 @@
 #include "MainMenu.h"
 #include "ShopMenu.h"
 #include "GameOverScreen.h"
+#include "HUD.h"
+#include "LevelManager.h"
 
 using namespace std;
 
@@ -197,11 +202,11 @@ int main()
     float silaStrzalu = 1;
     float tarcieStoluGlobal = 1;
     float tarcieScianGlobal = 1;
-    int maxStrzaly = 3;
+    int maxStrzaly = 1;
     bool widocznoscCelu = true; // do testów, w grze zmienić na false żeby można było kupić
 
     // Zmienne do działania
-    int celPunktow = 1;
+    // int celPunktow = 1;
     int strzaly = 0;
     int lastHeldBall = -1;
     bool areBallsStationary = false;
@@ -219,6 +224,9 @@ int main()
     MainMenu glowneMenu(rozdzielczosc);
     GameOverScreen ekranPrzegranej(rozdzielczosc);
     ShopMenu ekranSklepu(rozdzielczosc);
+    LevelManager levelManager;
+    HUD hud;
+
     while (window.isOpen()) {
         sf::Time elapsed = clock.restart();
 
@@ -272,7 +280,7 @@ int main()
                         std::cout << "debug - Przycisk PLAY klikniety" << std::endl;
                         g_Stats.ResetujGre();
                         resetBoard(entities, pozycjebazoweX, pozycjebazoweY, strzaly);
-                        celPunktow = 1;
+                        levelManager.przygotujRunde();
                         roundIsActive = true; currentState = PLAYING;
                     }
                     else if (akcja == 2) { std::cout << "Ustawienia"<<std::endl; }
@@ -281,14 +289,14 @@ int main()
                     {
                         g_Stats.ResetujGre();
                         resetCalejRozgrywki(entities, pozycjebazoweX, pozycjebazoweY, strzaly);
-                        celPunktow = 1;
+                        levelManager.przygotujRunde();
                         roundIsActive = true; currentState = PLAYING;
                     }
                     else if (akcja == 5) { currentState = MENU; }
                     else if (akcja == 6)
                     {
                         g_Stats.rundy++;
-                        celPunktow += 1;
+                        levelManager.przygotujRunde();
                         resetBoard(entities, pozycjebazoweX, pozycjebazoweY, strzaly);
                         roundIsActive = true; currentState = PLAYING;
                         std::cout << "Runda " << g_Stats.rundy << std::endl;
@@ -363,7 +371,7 @@ int main()
                 if( areBallsStationary && strzaly >= aktualneMaxStrzaly )
                 {
                     g_Stats.punktyGlobalnie += g_Stats.punktyTejRundy;
-                    if( g_Stats.punktyTejRundy >= celPunktow )
+                    if( g_Stats.punktyTejRundy >= levelManager.celPunktow )
                     {
                         // Win
                         roundIsActive = false;
@@ -443,12 +451,46 @@ int main()
                 {
                     if (auto* bal = dynamic_cast<BilardBall*>(obj.get()))
                     {
-                        if (!bal->Put) bal->kolizjeDziur(elapsed, entities, tarcieScianGlobal, tarcieStoluGlobal);
+                        // Zamiast starej funkcji, sprawdzamy dziury z uwzględnieniem blokad:
+                        if (!bal->Put)
+                        {
+                            int indeksDziury = 0;
+                            for (auto& holeObj : entities)
+                            {
+                                if (auto* hol = dynamic_cast<BilardHole*>(holeObj.get()))
+                                {
+                                    if (!levelManager.czyDziuraZablokowana(indeksDziury) &&
+                                        diff(bal->getPosition(), hol->getPosition()) < bal->getRadius() + hol->getRadius())
+                                    {
+                                        bal->ballPut();
+                                        break;
+                                    }
+                                    indeksDziury++;
+                                }
+                            }
+                        }
                     }
                 }
                 // Update
+                // Update z uwzględnieniem tarcia Bossów
                 for (auto& obj : entities)
                 {
+                    if (auto* bal = dynamic_cast<BilardBall*>(obj.get()))
+                    {
+                        float mnoznikTarcia = levelManager.zmniejszoneTarcieAktywne ? levelManager.tarcieStoluGlobal : 1.f;
+                        if (levelManager.obecnyBoss == BossType::Mud)
+                        {
+                            for (const auto& plama : levelManager.plamyBlota)
+                            {
+                                if (diff(bal->getPosition(), plama.getPosition()) <= plama.getRadius())
+                                {
+                                    mnoznikTarcia = std::max(mnoznikTarcia, levelManager.mnoznikTarciaBlota);
+                                    break;
+                                }
+                            }
+                        }
+                        bal->tarcie = bal->tarcieBaza * mnoznikTarcia;
+                    }
                     obj->update(elapsed);
                 }
             }
@@ -460,9 +502,33 @@ int main()
 
             if (currentState == PLAYING || currentState == GAME_OVER) {
 
-                // Rysujemy najpierw dziury, potem ściany, potem bile
+                // Rysowanie błota pod bilami
+                if ((currentState == PLAYING || currentState == GAME_OVER) && levelManager.obecnyBoss == BossType::Mud) {
+                    for (const auto& plama : levelManager.plamyBlota) virtualScreen.draw(plama);
+                }
+
+                // Rysowanie zablokowanych dziur
+                int i_dziura = 0;
                 for (auto& obj : entities) {
-                    if (dynamic_cast<BilardHole*>(obj.get())) obj->draw(virtualScreen);
+                    if (auto* hol = dynamic_cast<BilardHole*>(obj.get())) {
+
+                        obj->draw(virtualScreen); // Najpierw rysujemy normalną, czarną dziurę
+
+                        // Jeśli system mówi, że ta dziura ma być zablokowana przez Bossa:
+                        if (levelManager.czyDziuraZablokowana(i_dziura)) {
+
+                            // Blokada dziury
+                            sf::CircleShape blokada(hol->getRadius());
+                            blokada.setOrigin(hol->getRadius(), hol->getRadius());
+                            blokada.setPosition(hol->getPosition()); // Ustawiamy dokładnie w miejscu dziury
+                            blokada.setFillColor(sf::Color(95, 95, 95)); // Szary kolor
+                            blokada.setOutlineColor(sf::Color(170, 30, 30)); // Czerwona ramka ostrzegawcza
+                            blokada.setOutlineThickness(2.f);
+
+                            virtualScreen.draw(blokada); // Rysujemy blokadę na dziurze
+                        }
+                        i_dziura++;
+                    }
                 }
 
                 virtualScreen.draw(sciany);
@@ -520,6 +586,11 @@ int main()
             // Rysujemy odpowiednie menu (jeśli w nim jesteśmy)
             if (currentState != PLAYING) {
                 uiScreens[currentState]->draw(virtualScreen);
+            }
+
+            // Hud
+            if (currentState == PLAYING) {
+                hud.draw(virtualScreen, aktualneMaxStrzaly, strzaly, levelManager.celPunktow);
             }
 
             virtualScreen.display();
