@@ -315,18 +315,36 @@ void ShopMenu::updateHover(sf::Vector2f mousePos)
     }
     else if (currentSubState == SHOP_BALL_INVENTORY)
     {
-        // Powiększonym widok trójkąta
+        extern std::vector<Upgrade> PelnaBazaUlepszen; // Dostęp do bazy danych
+
         for (int i = 0; i < inventoryBalls.size(); i++)
         {
             if (inventoryBalls[i].getGlobalBounds().contains(mousePos))
             {
-                tooltipName.setString("Bila " + std::to_string(i+1));
-                tooltipDesc.setString("Obecnie brak ulepszen");
+                tooltipName.setString("Bila " + std::to_string(i+1)); // Bila 1, Bila 2...
+
+                // Budujemy listę posiadanych ulepszeń dla tej konkretnej bili
+                std::string listaBil = "";
+                for (int id : g_Stats.ulepszeniaBil[i]) {
+                    for (const auto& upg : PelnaBazaUlepszen) {
+                        if (upg.id == id) {
+                            listaBil += "- " + upg.nazwa + "\n";
+                            break;
+                        }
+                    }
+                }
+
+                if (listaBil.empty()) listaBil = "Brak ulepszen. Podstawowa masa.";
+
+                tooltipDesc.setString(listaBil);
                 tooltipPrice.setString("");
                 showTooltip = true;
             }
         }
     }
+
+    // Aktualizacja pozycji tooltipa, jeśli ma być widoczny
+    if (showTooltip)
 
     // Aktualizacja pozycji tooltipa, jeśli ma być widoczny
     if (showTooltip)
@@ -390,17 +408,20 @@ int ShopMenu::handleClick(sf::Vector2f mousePos)
 
         if (hoveredItem != nullptr) {
             if (hoveredItem->kupiony) {
-                std::cout << "Sklep - Posiadasz juz ten przedmiot" << std::endl;
+                std::cout << "Sklep - Wykupiles to w tym losowaniu" << std::endl;
+            }
+            else if (hoveredItem->id >= 200)
+            {
+                // --- KUPUJEMY BILĘ: Zatrzymujemy transakcję i otwieramy trójkąt ---
+                pendingBallUpgrade = hoveredItem;
+                currentSubState = SHOP_BALL_INVENTORY;
             }
             else if (g_Stats.kupUlepszenie(hoveredItem->cena, hoveredItem->id))
             {
-                std::cout << "Sklep - Kupiono: " << hoveredItem->nazwa << "! Pozostalo monet: " << g_Stats.monety << std::endl;
+                // --- KUPUJEMY KIJ: Płacimy i dostajemy od razu ---
+                std::cout << "Sklep - Kupiono KIJ: " << hoveredItem->nazwa << std::endl;
                 hoveredItem->kupiony = true;
                 hoveredItem->shape.setFillColor(sf::Color(50, 150, 50));
-                if (hoveredItem->id >= 200) {
-                    currentSubState = SHOP_BALL_INVENTORY;
-                    // Gdy gracz kupi ulepszenie bili, ekran od razu przechodzi w tryb wyboru z trójkątem
-                }
             }
             else
             {
@@ -409,9 +430,54 @@ int ShopMenu::handleClick(sf::Vector2f mousePos)
         }
     }
     else if (currentSubState == SHOP_BALL_INVENTORY) {
-        // Zamknięcie pod-menu bil po kliknięciu gdziekolwiek indziej niż w bile (albo po prostu gdziekolwiek)
-        currentSubState = SHOP_MAIN;
+        bool clickedOnBall = false;
+
+        for (int i = 0; i < inventoryBalls.size(); i++) {
+            if (inventoryBalls[i].getGlobalBounds().contains(mousePos)) {
+                clickedOnBall = true;
+
+                // Jeśli jesteśmy tu po to, żeby przypisać ulepszenie ze sklepu:
+                if (pendingBallUpgrade != nullptr) {
+
+                    // 1. Sprawdzamy, czy ta konkretna bila MA JUŻ to ulepszenie
+                    bool maJuzTo = false;
+                    for (int posiadaneID : g_Stats.ulepszeniaBil[i]) {
+                        if (posiadaneID == pendingBallUpgrade->id) maJuzTo = true;
+                    }
+
+                    if (maJuzTo) {
+                        std::cout << "Ta bila ma juz to ulepszenie! Wybierz inna." << std::endl;
+                        break; // Przerywamy akcję, gracz nadal może wybrać inną bilę
+                    }
+
+                    // 2. Pobieramy opłatę i przydzielamy ulepszenie!
+                    if (g_Stats.kupUlepszenie(pendingBallUpgrade->cena, pendingBallUpgrade->id)) {
+                        g_Stats.ulepszeniaBil[i].push_back(pendingBallUpgrade->id); // Dodajemy do szufladki tej bili
+
+                        std::cout << "Bila " << i+1 << " dostala: " << pendingBallUpgrade->nazwa << "!" << std::endl;
+
+                        pendingBallUpgrade->kupiony = true; // Wyszarzamy przycisk w sklepie
+                        pendingBallUpgrade->shape.setFillColor(sf::Color(50, 150, 50));
+                    } else {
+                        std::cout << "Za malo monet, aby przypisac do bili!" << std::endl;
+                    }
+
+                    // Zamykamy trójkąt, wracamy do sklepu
+                    pendingBallUpgrade = nullptr;
+                    currentSubState = SHOP_MAIN;
+                }
+                break;
+            }
+        }
+
+        // Anulowanie zakupu, jeśli gracz kliknie w tło (poza bilami)
+        if (!clickedOnBall) {
+            pendingBallUpgrade = nullptr;
+            currentSubState = SHOP_MAIN;
+        }
     }
+
+    if (btnRefresh.getGlobalBounds().contains(mousePos))
     if (btnRefresh.getGlobalBounds().contains(mousePos))
     {
         if (g_Stats.monety >= kosztRefresha) {

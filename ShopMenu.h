@@ -66,6 +66,8 @@ private:
     sf::RectangleShape btnRefresh;
     int kosztRefresha = 10;
 
+    ShopButton* pendingBallUpgrade = nullptr;
+
 public:
     ShopMenu(std::pair<int,int> res);
 

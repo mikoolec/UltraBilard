@@ -96,13 +96,18 @@ void mult( std::vector<float> &vec, float num )
 void resetCalejRozgrywki(std::vector<std::unique_ptr<GameObject>>& entities, const std::vector<float>& MiejscaX, const std::vector<float>& MiejscaY, int& shots)
 {
     resetBoard(entities, MiejscaX, MiejscaY, shots);
-    g_Stats.punktyGlobalnie=0;
-    g_Stats.monety=0;
-    g_Stats.monetyGlobalnie=0;
-    g_Stats.rundy=1;
-    g_Stats.wbiteBileGlobalnie=0;
-    g_Stats.strzalyGlobalnie=0;
-    std::cout<<"debug - resetujemy runa"<<std::endl;
+    g_Stats.punktyGlobalnie = 0;
+    g_Stats.monety = 1000; // test
+    g_Stats.monetyGlobalnie = 0;
+    g_Stats.rundy = 1;
+    g_Stats.wbiteBileGlobalnie = 0;
+    g_Stats.strzalyGlobalnie = 0;
+
+    // clear eq
+    g_Stats.posiadaneUpgradeID.clear();
+    g_Stats.ulepszeniaBil.clear();
+
+    std::cout<<"debug - resetujemy runa i czyscimy ekwipunek"<<std::endl;
 }
 
 int main()
@@ -265,14 +270,18 @@ int main()
                     if (akcja == 1)
                     {
                         std::cout << "debug - Przycisk PLAY klikniety" << std::endl;
+                        g_Stats.ResetujGre();
                         resetBoard(entities, pozycjebazoweX, pozycjebazoweY, strzaly);
+                        celPunktow = 1;
                         roundIsActive = true; currentState = PLAYING;
                     }
                     else if (akcja == 2) { std::cout << "Ustawienia"<<std::endl; }
                     else if (akcja == 3) { std::cout << "Zamkniecie okna"<<std::endl; window.close(); }
                     else if (akcja == 4)
                     {
+                        g_Stats.ResetujGre();
                         resetCalejRozgrywki(entities, pozycjebazoweX, pozycjebazoweY, strzaly);
+                        celPunktow = 1;
                         roundIsActive = true; currentState = PLAYING;
                     }
                     else if (akcja == 5) { currentState = MENU; }

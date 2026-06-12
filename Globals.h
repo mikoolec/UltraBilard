@@ -47,6 +47,21 @@ struct GameStats {
         }
         return false;
     }
+
+    void ResetujGre()
+    {
+        punktyTejRundy = 0;
+        punktyGlobalnie = 0;
+        monety = 1000; // startowa ilosc do testow
+        monetyGlobalnie = 0;
+        rundy = 1;
+        wbiteBileGlobalnie = 0;
+        strzalyGlobalnie = 0;
+
+        // clear eq
+        posiadaneUpgradeID.clear();
+        ulepszeniaBil.clear();
+    }
 };
 
 // Deklaracja, że zmienna g_Stats istnieje
