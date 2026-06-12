@@ -1,5 +1,6 @@
 #include "ShopMenu.h"
 #include "Globals.h"
+#include "Upgrades.h"
 #include <iostream>
 #include<algorithm>
 #include<random>
@@ -159,6 +160,7 @@ ShopMenu::ShopMenu(std::pair<int,int> res) {
 void ShopMenu::updateHover(sf::Vector2f mousePos)
 {
     showTooltip = false; // Domyślnie chowamy tooltip
+    hoveredItem = nullptr;
 
     if (currentSubState == SHOP_MAIN) {
         // Sprawdzamy Kije do kupienia
@@ -166,11 +168,16 @@ void ShopMenu::updateHover(sf::Vector2f mousePos)
         {
             if(btn.shape.getGlobalBounds().contains(mousePos))
             {
-                btn.shape.setFillColor(sf::Color(200, 200, 200));
+                if(!btn.kupiony) btn.shape.setFillColor(sf::Color(200, 200, 200));
+                hoveredItem = &btn;
                 tooltipName.setString(btn.nazwa); tooltipDesc.setString(btn.opis); tooltipPrice.setString("Cena: " + std::to_string(btn.cena));
                 showTooltip = true;
             }
-            else { btn.shape.setFillColor(sf::Color(150, 150, 150)); }
+            else
+            {
+                if(btn.kupiony) btn.shape.setFillColor(sf::Color(50, 150, 50));
+                else {btn.shape.setFillColor(sf::Color(150, 150, 150));}
+            }
         }
 
         // Sprawdzamy Bile do kupienia
@@ -178,11 +185,18 @@ void ShopMenu::updateHover(sf::Vector2f mousePos)
         {
             if(btn.shape.getGlobalBounds().contains(mousePos))
             {
-                btn.shape.setFillColor(sf::Color(200, 200, 200));
-                tooltipName.setString(btn.nazwa); tooltipDesc.setString(btn.opis); tooltipPrice.setString("Cena: " + std::to_string(btn.cena));
+                if(!btn.kupiony) btn.shape.setFillColor(sf::Color(200, 200, 200));
+                hoveredItem = &btn;
+                tooltipName.setString(btn.nazwa);
+                tooltipDesc.setString(btn.opis);
+                tooltipPrice.setString("Cena: " + std::to_string(btn.cena));
                 showTooltip = true;
             }
-            else { btn.shape.setFillColor(sf::Color(150, 150, 150)); }
+            else
+            {
+                if(btn.kupiony) btn.shape.setFillColor(sf::Color(50, 150, 50));
+                else {btn.shape.setFillColor(sf::Color(150, 150, 150));}
+            }
         }
 
         // Sprawdzanie ikony trójkąta na środku
@@ -206,7 +220,8 @@ void ShopMenu::updateHover(sf::Vector2f mousePos)
         if(btnNextShape.getGlobalBounds().contains(mousePos)) btnNextShape.setFillColor(sf::Color(255, 100, 100));
         else btnNextShape.setFillColor(sf::Color(200, 50, 50));
 
-    } else if (currentSubState == SHOP_BALL_INVENTORY)
+    }
+    else if (currentSubState == SHOP_BALL_INVENTORY)
     {
         // Powiększonym widok trójkąta
         for (int i = 0; i < inventoryBalls.size(); i++)
@@ -264,6 +279,22 @@ int ShopMenu::handleClick(sf::Vector2f mousePos)
 
         if (btnNextShape.getGlobalBounds().contains(mousePos)) return 6; // Next Round
 
+        if (hoveredItem != nullptr) {
+            if (hoveredItem->kupiony) {
+                std::cout << "Sklep - Posiadasz juz ten przedmiot" << std::endl;
+            }
+            else if (g_Stats.kupUlepszenie(hoveredItem->cena))
+            {
+                std::cout << "Sklep - Kupiono: " << hoveredItem->nazwa << "! Pozostalo monet: " << g_Stats.monety << std::endl;
+                hoveredItem->kupiony = true;
+                hoveredItem->shape.setFillColor(sf::Color(50, 150, 50));
+                // TODO check itemow konkretnych
+            }
+            else
+            {
+                std::cout << "Sklep - Za malo monet!" << std::endl;
+            }
+        }
     }
     else if (currentSubState == SHOP_BALL_INVENTORY) {
         // Zamknięcie pod-menu bil po kliknięciu gdziekolwiek indziej niż w bile (albo po prostu gdziekolwiek)
@@ -307,3 +338,4 @@ void ShopMenu::draw(sf::RenderTexture& target) {
         if (!tooltipPrice.getString().isEmpty()) target.draw(tooltipPrice);
     }
 }
+

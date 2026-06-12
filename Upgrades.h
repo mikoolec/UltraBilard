@@ -9,6 +9,7 @@ struct Upgrade {
     int cena;
     int rodzaj; // 0 = kij, 1 = bila
     float wartoscModyfikatora; // np. 0.3f dla +30% siły
+    bool kupiony = false;
 };
 
 static std::vector<Upgrade> PelnaBazaUlepszen = {

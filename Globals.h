@@ -12,11 +12,19 @@ enum GameState {
 struct GameStats {
     int punktyTejRundy = 0;
     int punktyGlobalnie = 0;
-    int monety = 0;
+    int monety = 100;                                                   // do wyzerowania!!!!!!!!
     int monetyGlobalnie = 0;
     int rundy = 1;
     int wbiteBileGlobalnie = 0;
     int strzalyGlobalnie = 0;
+
+    bool kupUlepszenie(int cena) {
+        if (monety >= cena) {
+            monety -= cena;
+            return true; // Zakup udany
+        }
+        return false; // Brak środków
+    }
 };
 
 // Deklaracja, że zmienna g_Stats istnieje

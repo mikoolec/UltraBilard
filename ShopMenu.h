@@ -18,6 +18,7 @@ struct ShopButton {
     std::string opis;
     int cena;
     bool isHovered = false;
+    bool kupiony = false;
 };
 
 class ShopMenu : public MenuScreen {
@@ -57,6 +58,8 @@ private:
     // Losowanie sklepu
     std::vector<Upgrade> wylosowaneKije;
     std::vector<Upgrade> wylosowaneBile;
+
+    ShopButton* hoveredItem = nullptr;
 
 public:
     ShopMenu(std::pair<int,int> res);
