@@ -14,6 +14,7 @@ enum ShopSubState {
 
 struct ShopButton {
     sf::RectangleShape shape;
+    sf::Sprite sprite;
     std::string nazwa;
     std::string opis;
     int cena;
@@ -27,21 +28,36 @@ private:
     ShopSubState currentSubState = SHOP_MAIN;
 
     sf::RectangleShape bg;
-    sf::RectangleShape leftPanel;
-    sf::RectangleShape rightPanel;
+    sf::Texture texTloCegly;
+    sf::Sprite sprTloCegly;
+
+    sf::Texture texDrewnoSrodek;
+    sf::Sprite sprDrewnoSrodek;
+
+    sf::Texture texBoxKijNorm, texBoxKijHov;
+    sf::Texture texBoxBilaNorm, texBoxBilaHov;
+
+    sf::Texture texKijSrodek;
+    sf::Sprite sprKijSrodek;
+
+    sf::Texture texTrojkatSrodek;
+    sf::Sprite sprTrojkatSrodek;
+
+    sf::Texture texBtnRefreshNorm, texBtnRefreshHov;
+    sf::Sprite sprBtnRefresh;
+
+    sf::Texture texBtnNextNorm, texBtnNextHov;
+    sf::Sprite sprBtnNext;
 
     std::vector<ShopButton> cueButtons;
     std::vector<ShopButton> ballButtons;
 
-    sf::RectangleShape btnNextShape;
     sf::Text btnNextText;
 
     sf::Font font;
     sf::Text titleText;
 
     // Srodkowe elementy
-    sf::RectangleShape currentCueDisplay;
-    sf::ConvexShape currentTriangleDisplay; // Ikona trójkąta
     sf::Text inventoryText;
 
     // Plywajace okno
@@ -63,7 +79,6 @@ private:
     ShopButton* hoveredItem = nullptr;
 
     // Refresh button
-    sf::RectangleShape btnRefresh;
     int kosztRefresha = 10;
 
     ShopButton* pendingBallUpgrade = nullptr;

@@ -118,7 +118,7 @@ void resetCalejRozgrywki(std::vector<std::unique_ptr<GameObject>>& entities, con
 int main()
 {
     srand(time(NULL));
-    sf::RenderWindow window(sf::VideoMode(640, 360), "Okno Gry");
+    sf::RenderWindow window(sf::VideoMode(640, 360), "UltraBilard");
 
     // Uzywac tej zmiennej w ustawieniach
     // Wypróbowane wartości: 640,360 ; 320,180 ; 480,270 ; 256,144 ; 128,72 ; 1280,720

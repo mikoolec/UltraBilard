@@ -7,16 +7,21 @@
 
 ShopMenu::ShopMenu(std::pair<int,int> res) {
     // Tła i panele
-    bg.setSize(sf::Vector2f(res.first, res.second));
-    bg.setFillColor(sf::Color(30, 100, 40));
+    // Ładowanie ceglanego tła (640x360)
+    if (texTloCegly.loadFromFile("assets//shop4.png")) {
+        texTloCegly.setSmooth(false);
+        sprTloCegly.setTexture(texTloCegly);
+    }
 
-    leftPanel.setSize(sf::Vector2f(180, 320));
-    leftPanel.setPosition(20, 20);
-    leftPanel.setFillColor(sf::Color(0, 0, 0, 100));
+    // Ładowanie drewnianego panelu na środek
+    if (texDrewnoSrodek.loadFromFile("assets//shop_srodek2.png")) {
+        texDrewnoSrodek.setSmooth(false);
+        sprDrewnoSrodek.setTexture(texDrewnoSrodek);
 
-    rightPanel.setSize(sf::Vector2f(180, 320));
-    rightPanel.setPosition(res.first - 200, 20);
-    rightPanel.setFillColor(sf::Color(0, 0, 0, 100));
+        // Automatycznie liczy środek ekranu (640) minus szerokość Twojego PNG
+        float srodekX = (res.first - sprDrewnoSrodek.getGlobalBounds().width) / 2.0f;
+        sprDrewnoSrodek.setPosition(srodekX, 0);
+    }
 
     // Tekst
     if(font.loadFromFile("assets//PublicPixel.ttf"))
@@ -44,23 +49,36 @@ ShopMenu::ShopMenu(std::pair<int,int> res) {
     tooltipBg.setOutlineThickness(2);
     tooltipBg.setOutlineColor(sf::Color::White);
 
-    // Ekwipunek
-    currentCueDisplay.setSize(sf::Vector2f(140, 20));
-    currentCueDisplay.setOrigin(70, 10);
-    currentCueDisplay.setPosition(res.first/2.0f, 140);
-    currentCueDisplay.setFillColor(sf::Color(139, 69, 19));
+    // Ladowanie grafik sklepu
+    texBoxKijNorm.loadFromFile("assets//SHOP_kije_tlo_normal.png");
+    texBoxKijHov.loadFromFile("assets//SHOP_kije_tlo_hover.png");
+    texBoxBilaNorm.loadFromFile("assets//SHOP_bile_tlo_normal.png");
+    texBoxBilaHov.loadFromFile("assets//SHOP_bile_tlo_hover.png");
 
-    currentTriangleDisplay.setPointCount(3);
-    currentTriangleDisplay.setPoint(0, sf::Vector2f(0, -30));
-    currentTriangleDisplay.setPoint(1, sf::Vector2f(30, 30));
-    currentTriangleDisplay.setPoint(2, sf::Vector2f(-30, 30));
-    currentTriangleDisplay.setFillColor(sf::Color(100, 100, 100));
-    currentTriangleDisplay.setPosition(res.first/2.0f, 220);
+    if(texKijSrodek.loadFromFile("assets//SHOP_moj_kij_tlo_normal.png")) {
+        sprKijSrodek.setTexture(texKijSrodek);
+        sprKijSrodek.setOrigin(texKijSrodek.getSize().x / 2.0f, texKijSrodek.getSize().y / 2.0f);
+        sprKijSrodek.setPosition(res.first/2.0f, 140);
+    }
 
-    // Refresh
-    btnRefresh.setSize(sf::Vector2f(150, 40));
-    btnRefresh.setPosition(35, res.second - 80);
-    btnRefresh.setFillColor(sf::Color(100, 100, 200));
+    if(texTrojkatSrodek.loadFromFile("assets//SHOP_moje_bile_tlo_normal.png")) {
+        sprTrojkatSrodek.setTexture(texTrojkatSrodek);
+        sprTrojkatSrodek.setOrigin(texTrojkatSrodek.getSize().x / 2.0f, texTrojkatSrodek.getSize().y / 2.0f);
+        sprTrojkatSrodek.setPosition(res.first/2.0f, 220);
+    }
+
+    if(texBtnRefreshNorm.loadFromFile("assets//SHOP_refresh_normal.png") && texBtnRefreshHov.loadFromFile("assets//SHOP_refresh_hover.png")) {
+        sprBtnRefresh.setTexture(texBtnRefreshNorm);
+        sprBtnRefresh.setOrigin(texBtnRefreshNorm.getSize().x / 2.0f, texBtnRefreshNorm.getSize().y / 2.0f);
+        // Ustawiamy idealnie na środku osi X, tuż nad przyciskiem Next Round
+        sprBtnRefresh.setPosition(res.first / 2.0f, res.second - 85);
+    }
+
+    if(texBtnNextNorm.loadFromFile("assets//SHOP_continue_normal.png") && texBtnNextHov.loadFromFile("assets//SHOP_continue_hover.png")) {
+        sprBtnNext.setTexture(texBtnNextNorm);
+        sprBtnNext.setOrigin(texBtnNextNorm.getSize().x / 2.0f, texBtnNextNorm.getSize().y / 2.0f);
+        sprBtnNext.setPosition(res.first/2.0f, res.second - 40);
+    }
 
     OdswiezPrzedmioty();
 
@@ -81,9 +99,6 @@ ShopMenu::ShopMenu(std::pair<int,int> res) {
     for(int i = 0; i < 3; i++) wylosowaneKije.push_back(kijeBaza[i]);
     for(int i = 0; i < 4; i++) wylosowaneBile.push_back(bileBaza[i]);
 
-    // Przycisk next
-    btnNextShape.setSize(sf::Vector2f(160, 40)); btnNextShape.setOrigin(80, 20);
-    btnNextShape.setPosition(res.first/2.0f, res.second - 40); btnNextShape.setFillColor(sf::Color(200, 50, 50));
     btnNextText.setFont(font); btnNextText.setString("NASTEPNA RUNDA");
     btnNextText.setCharacterSize(10); btnNextText.setFillColor(sf::Color::White);
     sf::FloatRect nb = btnNextText.getLocalBounds();
@@ -176,43 +191,68 @@ void ShopMenu::OdswiezPrzedmioty()
 
 
     // przyciski sklep
-    // przyciski kije
-    int startY = 110;
+    // tworzenie przyciskow kiji (Lewa strona)
+    float startY_kije = 120.0f; //
+
+    // SFML sam wylicza połowę odległości od krawędzi ekranu do desek!
+    float srodekLewej = sprDrewnoSrodek.getPosition().x / 2.0f;
+
     for(int i = 0; i < wylosowaneKije.size(); i++)
     {
         ShopButton btn;
         btn.shape.setSize(sf::Vector2f(140, 50));
         btn.shape.setOrigin(70, 25);
-        btn.shape.setPosition(110, startY + (i * 70));
-        btn.shape.setFillColor(sf::Color(150, 150, 150));
+        btn.shape.setPosition(srodekLewej, startY_kije + (i * 70));
+        btn.shape.setFillColor(sf::Color::Transparent);
 
-        // dane z losowych kiji
         btn.nazwa = wylosowaneKije[i].nazwa;
         btn.opis = wylosowaneKije[i].opis;
         btn.cena = wylosowaneKije[i].cena;
         btn.id = wylosowaneKije[i].id;
         btn.kupiony=false;
 
+        btn.sprite.setTexture(texBoxKijNorm);
+        if (texBoxKijNorm.getSize().x > 0) {
+            btn.sprite.setOrigin(texBoxKijNorm.getSize().x / 2.0f, texBoxKijNorm.getSize().y / 2.0f);
+            btn.sprite.setScale(140.0f / texBoxKijNorm.getSize().x, 50.0f / texBoxKijNorm.getSize().y);
+        }
+        // Ustawiamy przycisk idealnie na dynamicznie wyliczonym środku
+        btn.sprite.setPosition(srodekLewej, startY_kije + (i * 70));
+
         cueButtons.push_back(btn);
     }
 
     // przyciski bile
+    // tworzenie przyciskow bil (Prawa strona)
     for(int i = 0; i < wylosowaneBile.size(); i++)
     {
         ShopButton btn;
         btn.shape.setSize(sf::Vector2f(60, 60));
         btn.shape.setOrigin(30, 30);
-        int col = i % 2;
-        int row = i / 2;
-        btn.shape.setPosition(490 + (col * 80), 140 + (row * 80));
-        btn.shape.setFillColor(sf::Color(150, 150, 150));
 
-        // dane z losowych bil
+        int col = i % 2; // 0 lub 1
+        int row = i / 2; // 0 lub 1
+
+        // 490 i 570 to pozycje X (środek między nimi to dokładnie 530!)
+        float pozX = 490.0f + (col * 80.0f);
+        float pozY = 140.0f + (row * 80.0f);
+
+        btn.shape.setPosition(pozX, pozY);
+        btn.shape.setFillColor(sf::Color::Transparent);
+
         btn.nazwa = wylosowaneBile[i].nazwa;
         btn.opis = wylosowaneBile[i].opis;
         btn.cena = wylosowaneBile[i].cena;
         btn.id = wylosowaneBile[i].id;
         btn.kupiony=false;
+
+        btn.sprite.setTexture(texBoxBilaNorm);
+        if (texBoxBilaNorm.getSize().x > 0) {
+            btn.sprite.setOrigin(texBoxBilaNorm.getSize().x / 2.0f, texBoxBilaNorm.getSize().y / 2.0f);
+            // Wymuszamy rozmiar 60x60
+            btn.sprite.setScale(60.0f / texBoxBilaNorm.getSize().x, 60.0f / texBoxBilaNorm.getSize().y);
+        }
+        btn.sprite.setPosition(pozX, pozY); // Ustawiamy bezpośrednio
 
         ballButtons.push_back(btn);
     }
@@ -230,7 +270,9 @@ void ShopMenu::updateHover(sf::Vector2f mousePos)
         {
             if(btn.shape.getGlobalBounds().contains(mousePos))
             {
-                if(!btn.kupiony) btn.shape.setFillColor(sf::Color(200, 200, 200));
+                if (!btn.kupiony) {
+                    btn.sprite.setTexture(texBoxKijHov);
+                }
                 hoveredItem = &btn;
                 tooltipName.setString(btn.nazwa);
                 tooltipDesc.setString(btn.opis);
@@ -239,8 +281,13 @@ void ShopMenu::updateHover(sf::Vector2f mousePos)
             }
             else
             {
-                if(btn.kupiony) btn.shape.setFillColor(sf::Color(50, 150, 50));
-                else {btn.shape.setFillColor(sf::Color(150, 150, 150));}
+                if(btn.kupiony) {
+                    btn.shape.setFillColor(sf::Color(50, 150, 50, 160));
+                    btn.shape.setOutlineColor(sf::Color::Transparent);
+                }
+                else {
+                    btn.sprite.setTexture(texBoxKijNorm);
+                }
             }
         }
 
@@ -249,7 +296,9 @@ void ShopMenu::updateHover(sf::Vector2f mousePos)
         {
             if(btn.shape.getGlobalBounds().contains(mousePos))
             {
-                if(!btn.kupiony) btn.shape.setFillColor(sf::Color(200, 200, 200));
+                if (!btn.kupiony) {
+                    btn.sprite.setTexture(texBoxBilaHov);
+                }
                 hoveredItem = &btn;
                 tooltipName.setString(btn.nazwa);
                 tooltipDesc.setString(btn.opis);
@@ -258,24 +307,28 @@ void ShopMenu::updateHover(sf::Vector2f mousePos)
             }
             else
             {
-                if(btn.kupiony) btn.shape.setFillColor(sf::Color(50, 150, 50));
-                else {btn.shape.setFillColor(sf::Color(150, 150, 150));}
+                if(btn.kupiony) {
+                    btn.shape.setFillColor(sf::Color(50, 150, 50, 160));
+                    btn.shape.setOutlineColor(sf::Color::Transparent);
+                }
+                else {
+                    btn.sprite.setTexture(texBoxBilaNorm);
+                }
             }
         }
 
         // Sprawdzanie ikony trójkąta na środku
-        if(currentTriangleDisplay.getGlobalBounds().contains(mousePos))
+        if(sprTrojkatSrodek.getGlobalBounds().contains(mousePos))
         {
-            currentTriangleDisplay.setFillColor(sf::Color(150, 150, 150));
+            sprTrojkatSrodek.setColor(sf::Color(200, 200, 200));
             tooltipName.setString("Twoje Bile"); tooltipDesc.setString("Kliknij, aby sprawdzic"); tooltipPrice.setString("");
             showTooltip = true;
-        } else
-        {
-            currentTriangleDisplay.setFillColor(sf::Color(100, 100, 100));
+        } else {
+            sprTrojkatSrodek.setColor(sf::Color::White);
         }
 
         // Sprawdzanie obecnego kija na środku
-        if(currentCueDisplay.getGlobalBounds().contains(mousePos))
+        if(sprKijSrodek.getGlobalBounds().contains(mousePos))
         {
             extern std::vector<Upgrade> PelnaBazaUlepszen; // Dostęp do bazy
 
@@ -309,8 +362,11 @@ void ShopMenu::updateHover(sf::Vector2f mousePos)
             showTooltip = true;
         }
 
-        if(btnNextShape.getGlobalBounds().contains(mousePos)) btnNextShape.setFillColor(sf::Color(255, 100, 100));
-        else btnNextShape.setFillColor(sf::Color(200, 50, 50));
+        if(sprBtnNext.getGlobalBounds().contains(mousePos)) sprBtnNext.setTexture(texBtnNextHov);
+        else sprBtnNext.setTexture(texBtnNextNorm);
+
+        if(sprBtnRefresh.getGlobalBounds().contains(mousePos)) sprBtnRefresh.setTexture(texBtnRefreshHov);
+        else sprBtnRefresh.setTexture(texBtnRefreshNorm);
 
     }
     else if (currentSubState == SHOP_BALL_INVENTORY)
@@ -342,9 +398,6 @@ void ShopMenu::updateHover(sf::Vector2f mousePos)
             }
         }
     }
-
-    // Aktualizacja pozycji tooltipa, jeśli ma być widoczny
-    if (showTooltip)
 
     // Aktualizacja pozycji tooltipa, jeśli ma być widoczny
     if (showTooltip)
@@ -398,13 +451,13 @@ int ShopMenu::handleClick(sf::Vector2f mousePos)
     if (currentSubState == SHOP_MAIN)
     {
         // Przejście do widoku szczegółów bil
-        if (currentTriangleDisplay.getGlobalBounds().contains(mousePos))
+        if (sprTrojkatSrodek.getGlobalBounds().contains(mousePos))
         {
             currentSubState = SHOP_BALL_INVENTORY;
             return 0; // Nie wychodzimy ze sklepu, zmieniamy tylko stan
         }
 
-        if (btnNextShape.getGlobalBounds().contains(mousePos)) return 6; // Next Round
+        if (sprBtnNext.getGlobalBounds().contains(mousePos)) return 6; // Next Round
 
         if (hoveredItem != nullptr) {
             if (hoveredItem->kupiony) {
@@ -477,12 +530,11 @@ int ShopMenu::handleClick(sf::Vector2f mousePos)
         }
     }
 
-    if (btnRefresh.getGlobalBounds().contains(mousePos))
-    if (btnRefresh.getGlobalBounds().contains(mousePos))
+    if (sprBtnRefresh.getGlobalBounds().contains(mousePos))
     {
         if (g_Stats.monety >= kosztRefresha) {
             g_Stats.monety -= kosztRefresha;
-            OdswiezPrzedmioty(); // Magia - losujemy nowe itemy!
+            OdswiezPrzedmioty(); // nowe itemy
             std::cout << "Kupiono Reroll za " << kosztRefresha << " monet!" << std::endl;
         }
         else
@@ -494,34 +546,32 @@ int ShopMenu::handleClick(sf::Vector2f mousePos)
 }
 
 void ShopMenu::draw(sf::RenderTexture& target) {
-    target.draw(bg);
+    target.draw(sprTloCegly);
 
     if (currentSubState == SHOP_MAIN) {
-        target.draw(leftPanel); target.draw(rightPanel);
+        target.draw(sprDrewnoSrodek);
         target.draw(titleText); target.draw(inventoryText);
 
-        // Rysowanie boxów kupowania
-        for(auto& btn : cueButtons) target.draw(btn.shape);
-        for(auto& btn : ballButtons) target.draw(btn.shape);
+        // Rysowanie boxów kupowania (nasze grafiki!)
+        for(auto& btn : cueButtons) target.draw(btn.sprite);
+        for(auto& btn : ballButtons) target.draw(btn.sprite);
 
         // Rysowanie środka
-        target.draw(currentCueDisplay);
-        target.draw(currentTriangleDisplay);
+        target.draw(sprKijSrodek);
+        target.draw(sprTrojkatSrodek);
 
-
-
-        target.draw(btnNextShape); target.draw(btnNextText);
+        target.draw(sprBtnNext);
     }
     else if (currentSubState == SHOP_BALL_INVENTORY) {
         // Widok inwentarza bil
-        target.draw(leftPanel); target.draw(rightPanel);
+        target.draw(sprDrewnoSrodek);
         target.draw(darkOverlay); // Przyciemniamy wszystko
 
         for (auto& ball : inventoryBalls) target.draw(ball);
         target.draw(closePromptText);
     }
 
-    target.draw(btnRefresh);
+    target.draw(sprBtnRefresh);
 
     // Pływające okienko rysujemy NA SAMEJ GÓRZE wszystkiego
     if (showTooltip) {
