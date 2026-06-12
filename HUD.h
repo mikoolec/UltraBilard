@@ -11,7 +11,7 @@ private:
 
 public:
     HUD();
-    void draw(sf::RenderTexture& target, int aktualneMaxStrzaly, int strzaly, int celPunktow);
+    void draw(sf::RenderTexture& target, int aktualneMaxStrzaly, int strzaly, int celPunktow, const std::string& etykietaRundy);
 };
 
 #endif

@@ -141,6 +141,10 @@ int main()
     sf::Sprite sciany;
     sciany.setTexture(sciany_stol);
 
+    // Efekt lodu na istniejacym tle stolu
+    sf::RectangleShape lodVisual(sf::Vector2f(rozdzielczosc.first, rozdzielczosc.second));
+    lodVisual.setFillColor(sf::Color(70, 165, 255, 115));
+
     // Importowanie kija
     sf::Texture texKij;
     if (!texKij.loadFromFile("assets//kij.png")) {
@@ -499,6 +503,9 @@ int main()
             virtualScreen.clear(currentState==MENU ? sf::Color::White : sf::Color::Black);
 
             virtualScreen.draw(tlo);
+            if ((currentState == PLAYING || currentState == GAME_OVER) && levelManager.obecnyBoss == BossType::Ice) {
+                virtualScreen.draw(lodVisual);
+            }
 
             if (currentState == PLAYING || currentState == GAME_OVER) {
 
@@ -590,7 +597,11 @@ int main()
 
             // Hud
             if (currentState == PLAYING) {
-                hud.draw(virtualScreen, aktualneMaxStrzaly, strzaly, levelManager.celPunktow);
+                std::string etykietaRundy = "RUNDA: " + std::to_string(g_Stats.rundy);
+                if (levelManager.obecnyBoss != BossType::None) {
+                    etykietaRundy = "Boss#" + std::to_string(g_Stats.rundy / 5);
+                }
+                hud.draw(virtualScreen, aktualneMaxStrzaly, strzaly, levelManager.celPunktow, etykietaRundy);
             }
 
             virtualScreen.display();
