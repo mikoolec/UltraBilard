@@ -457,7 +457,10 @@ int ShopMenu::handleClick(sf::Vector2f mousePos)
             return 0; // Nie wychodzimy ze sklepu, zmieniamy tylko stan
         }
 
-        if (sprBtnNext.getGlobalBounds().contains(mousePos)) return 6; // Next Round
+        if (sprBtnNext.getGlobalBounds().contains(mousePos)) {
+            g_Stats.ZapiszGre(); // ZAPIS gry
+            return 6; // Next Round
+        }
 
         if (hoveredItem != nullptr) {
             if (hoveredItem->kupiony) {
@@ -561,6 +564,7 @@ void ShopMenu::draw(sf::RenderTexture& target) {
         target.draw(sprTrojkatSrodek);
 
         target.draw(sprBtnNext);
+        target.draw(sprBtnRefresh);
     }
     else if (currentSubState == SHOP_BALL_INVENTORY) {
         // Widok inwentarza bil
@@ -570,8 +574,6 @@ void ShopMenu::draw(sf::RenderTexture& target) {
         for (auto& ball : inventoryBalls) target.draw(ball);
         target.draw(closePromptText);
     }
-
-    target.draw(sprBtnRefresh);
 
     // Pływające okienko rysujemy NA SAMEJ GÓRZE wszystkiego
     if (showTooltip) {

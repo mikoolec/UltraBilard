@@ -14,7 +14,6 @@ struct Upgrade {
 
 static std::vector<Upgrade> PelnaBazaUlepszen = {
     // Kije (rodzaj 0)
-    {100,"Celownik Snajperski", "2x dluzszy celownik", 5, 0},
     {101,"Karbonowy Material", "+3 Strzaly w rundzie", 5, 0},
     {102,"Olowiany Material", "+30% sily strzalu", 5, 0},
     {103,"Zloty Grawerunek", "+20% monet za wbicie bili", 5, 0},

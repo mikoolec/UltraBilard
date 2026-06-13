@@ -20,7 +20,6 @@ BilardBall::BilardBall(float radius, const sf::Vector2f& position, int id)
     wielkoscBaza = 1;
     hitpunktyBaza = 0;
     hitscianaBaza = 0;
-    monetyBaza = 1;
     hitmonetyBaza = 0;
 
     wallhitSFX.setBuffer(g_Audio.wallhitBuffer);
@@ -165,4 +164,8 @@ bool BilardBall::stationary() {
     if (abs(this->velocity.x) < 0.1f && abs(this->velocity.y) < 0.1f) return true;
     if (this->Put) return true;
     return false;
+}
+
+sf::Vector2f BilardBall::getVelocity() const {
+    return velocity;
 }

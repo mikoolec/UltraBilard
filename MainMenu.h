@@ -6,8 +6,8 @@
 
 class MainMenu : public MenuScreen {
 private:
-    sf::Texture textStartNormal, textStartHover, textSettingsNormal, textSettingsHover, textQuitNormal, textQuitHover;
-    sf::Sprite btnStart, btnSettings, btnQuit;
+    sf::Texture textNewRunNormal, textNewRunHover, textContinueNormal, textContinueHover, textSettingsNormal, textSettingsHover, textQuitNormal, textQuitHover;
+    sf::Sprite btnNewRun, btnContinue, btnSettings, btnQuit;
     sf::Font font;
     sf::Text titleText;
 

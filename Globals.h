@@ -3,6 +3,8 @@
 #pragma once
 #include<vector>
 #include<map>
+#include <fstream>
+#include<iostream>
 
 enum GameState {
     MENU,
@@ -61,6 +63,64 @@ struct GameStats {
         // clear eq
         posiadaneUpgradeID.clear();
         ulepszeniaBil.clear();
+    }
+
+    inline void ZapiszGre() {
+        std::ofstream plik("save.txt");
+        if (plik.is_open()) {
+            plik << monety << "\n";
+            plik << punktyGlobalnie << "\n";
+
+            // 1. Zapis ekwipunku Kijów (najpierw ilość, potem same ID)
+            plik << posiadaneUpgradeID.size() << "\n";
+            for (int id : posiadaneUpgradeID) plik << id << "\n";
+
+            // 2. Zapis ulepszeń dla 15 Bil
+            for (int i = 0; i < 15; i++) {
+                plik << ulepszeniaBil[i].size() << "\n";
+                for (int id : ulepszeniaBil[i]) {
+                    plik << id << "\n";
+                }
+            }
+
+            plik.close();
+            std::cout << "ZAPISANO STAN GRY!" << std::endl;
+        }
+    }
+
+    inline void WczytajGre() {
+        std::ifstream plik("save.txt");
+        if (plik.is_open()) {
+            plik >> monety;
+            plik >> punktyGlobalnie;
+
+            // 1. Wczytywanie Kijów
+            int iloscKijow;
+            if (plik >> iloscKijow) {
+                posiadaneUpgradeID.clear();
+                for (int i = 0; i < iloscKijow; i++) {
+                    int id; plik >> id;
+                    posiadaneUpgradeID.push_back(id);
+                }
+            }
+
+            // 2. Wczytywanie Bil
+            for (int i = 0; i < 15; i++) {
+                int iloscUlepszenBili;
+                if (plik >> iloscUlepszenBili) {
+                    ulepszeniaBil[i].clear();
+                    for (int j = 0; j < iloscUlepszenBili; j++) {
+                        int id; plik >> id;
+                        ulepszeniaBil[i].push_back(id);
+                    }
+                }
+            }
+
+            plik.close();
+            std::cout << "WCZYTANO STAN GRY!" << std::endl;
+        } else {
+            std::cout << "Brak pliku save.txt (To normalne przy pierwszym uruchomieniu)." << std::endl;
+        }
     }
 };
 

@@ -30,6 +30,17 @@ using namespace std;
 // Definicja globalnej zmiennej z Globals.h
 GameStats g_Stats;
 
+// Tablica do kontrolowania ulepszenia Bomba
+bool g_bombaUzyta[15] = {false};
+// Tablica do ulepszenia Ogien
+bool g_ogienDotkniety[15] = {false};
+// Flaga do ulepszenia Cel
+bool g_bylaJuzWbitaBila = false;
+// Tablica do ulepszenia Skarbonka oraz Szkło
+bool g_hitZaliczony[15] = {false};
+// Licznik do ulepszenia Inwestycja
+int g_monetyZarobioneWRundzie = 0;
+
 void RysujLinie(sf::RenderTexture& target, sf::Vector2f punktA, sf::Vector2f punktB, float grubosc, sf::Color kolor)
 {
     // 1. Obliczamy wektor różnicy między punktami
@@ -75,6 +86,9 @@ void ZaladujTekstureScian(sf::Texture& sciany_stolu)
 // funkcja resetujące korzystające z głównego kontenera
 void resetBoard(std::vector<std::unique_ptr<GameObject>>& entities, const std::vector<float>& MiejscaX, const std::vector<float>& MiejscaY, int& shots) {
     std::cout << "debug - Start resetBoard..." << std::endl;
+    for(int i=0; i<15; i++) g_bombaUzyta[i] = false;
+    g_bylaJuzWbitaBila = false; // Reset Celu dla nowej rundy
+    g_monetyZarobioneWRundzie = 0; // Reset Inwestycji na nową rundę
     for (auto& obj : entities) {
         if (auto* bal = dynamic_cast<BilardBall*>(obj.get())) {
             bal->Put = false;
@@ -83,6 +97,27 @@ void resetBoard(std::vector<std::unique_ptr<GameObject>>& entities, const std::v
             }
             bal->setVelocity(sf::Vector2f(0, 0));
             bal->resetStats();
+
+            // ULEPSZENIA BAZOWE BIL (Kowadło, Balon, Sprężyna) ---
+            if (bal->identifier >= 0 && bal->identifier < 15) {
+                for (int idUlepszenia : g_Stats.ulepszeniaBil[bal->identifier]) {
+                    if (idUlepszenia == 201) { // Kowadlo (+masa = większe tarcie)
+                        bal->tarcieBaza *= 1.50f;
+                    }
+                    else if (idUlepszenia == 202) { // Balon (-masa = mniejsze tarcie)
+                        bal->tarcieBaza *= 0.50f;
+                    }
+                    else if (idUlepszenia == 205) { // Sprezyna (dużo mniejsze tarcie = mocniejsze odbicia)
+                        bal->tarcieBaza *= 0.80f;
+                    }
+                    else if (idUlepszenia == 206) { // Kostka Lodu (Prawie zerowe tarcie)
+                        bal->tarcieBaza = 0.005f;
+                    }
+                    else if (idUlepszenia == 207) { // Klej (Ogromne tarcie, zatrzymuje się niemal w miejscu)
+                        bal->tarcieBaza *= 50.0f;
+                    }
+                }
+            }
         }
     }
     shots = 0;
@@ -218,6 +253,8 @@ int main()
     bool roundIsActive = false;
     bool isDragging = false;
     bool accelerateWhiteNow = false;
+    bool chaosAktywny = false; // Zmienna do Kij Chaosu
+    float timerDucha = 0.f; // Zmienna do Kija Ducha
     float velc = 0.f;
     float dist_cent;
     sf::Vector2f addVelocity;
@@ -250,7 +287,17 @@ int main()
 
         int aktualneMaxStrzaly = maxStrzaly; // Baza
         if (g_Stats.czyPosiada(101)) {
-            aktualneMaxStrzaly += 3;
+            aktualneMaxStrzaly += 3; // Karbonowy material
+        }
+        if (g_Stats.czyPosiada(108)) {
+            aktualneMaxStrzaly += 10; // Kij Cierpliwości
+        }
+        // Reset ogien na strzal
+        for(int i=0; i<15; i++) g_ogienDotkniety[i] = false;
+        // Reset flagę uderzenia dla Skarbonki i Szkła
+        for(int i=0; i<15; i++) g_hitZaliczony[i] = false;
+        if (g_Stats.czyPosiada(110)) {
+            aktualneMaxStrzaly = 3; // Kij Ryzyka
         }
 
         // Eventy:
@@ -364,19 +411,42 @@ int main()
             {
                 // Check mozliwosci strzalu
                 areBallsStationary = true;
+                bool wszystkieWbite = true; // Zmienna do mechaniki Czystego Stołu
+
                 for (auto& obj : entities)
                 {
                     if (auto* bal = dynamic_cast<BilardBall*>(obj.get()))
                     {
                         if (!bal->stationary()) areBallsStationary = false;
+
+                        // Sprawdzamy, czy wszystkie kolorowe bile (ID od 0 do 14) zostały wbite
+                        if (bal->identifier >= 0 && bal->identifier <= 14) {
+                            if (!bal->Put) wszystkieWbite = false;
+                        }
                     }
                 }
-                // Zakończenie rundy
-                if( areBallsStationary && strzaly >= aktualneMaxStrzaly )
+
+                // Zakończenie rundy: brak strzałów ALBO wyczyszczenie stołu
+                if( areBallsStationary && (strzaly >= aktualneMaxStrzaly || wszystkieWbite) )
                 {
                     g_Stats.punktyGlobalnie += g_Stats.punktyTejRundy;
-                    if( g_Stats.punktyTejRundy >= levelManager.celPunktow )
+                    // Kij ryzyka
+                    if (g_Stats.czyPosiada(110)) g_Stats.punktyTejRundy = static_cast<int>(g_Stats.punktyTejRundy * 1.5f);
+                    // Drewniany kij
+                    if (g_Stats.czyPosiada(113)) g_Stats.punktyTejRundy *= 2; // +100% to po prostu podwojenie
+
+                    // Win: Mamy odpowiednią liczbę punktów ALBO wyczyściliśmy stół do zera
+                    if( g_Stats.punktyTejRundy >= levelManager.celPunktow || wszystkieWbite )
                     {
+                        // Kij Pacyfisty
+                        if (g_Stats.czyPosiada(109)) {
+                            int pozostaleStrzaly = aktualneMaxStrzaly - strzaly;
+                            if (pozostaleStrzaly > 0) {
+                                g_Stats.monety += (pozostaleStrzaly * 5);
+                                g_Stats.monetyGlobalnie += (pozostaleStrzaly * 5);
+                                std::cout << "Kij Pacyfisty: Zyskano +" << pozostaleStrzaly * 5 << " monet!" << std::endl;
+                            }
+                        }
                         // Win
                         roundIsActive = false;
                         currentState=SHOP;
@@ -422,13 +492,41 @@ int main()
                         addVelocity.y = (10*velc/dist_cent)*(whiteBall->getPosition().y-p.y) ;
                         float aktualnaSila = silaStrzalu;
                         if (g_Stats.czyPosiada(102)) {
-                            aktualnaSila *= 1.30f; // + 30% siły
+                            aktualnaSila *= 1.30f; // Olowiany material
+                        }
+                        if (g_Stats.czyPosiada(108)) {
+                            aktualnaSila *= 0.5f; // Kij cierpliwosci
                         }
                         whiteBall->setVelocity(addVelocity * aktualnaSila);
                         velc = 0;
                         strzaly ++;
                         g_Stats.strzalyGlobalnie++;
                         cout<<"strzal #"<<strzaly<<endl;
+                        // Kij bankiera
+                        if (g_Stats.czyPosiada(105)) {
+                            g_Stats.monety += 1;
+                            g_Stats.monetyGlobalnie += 1;
+                        }
+                        // Kij Ducha
+                        if (g_Stats.czyPosiada(116)) {
+                            timerDucha = 0.5f;
+                        }
+                        // Kij Chaosu
+                        chaosAktywny = false;
+                        if (g_Stats.czyPosiada(111) && velc > 95.f) { // max = 100
+                            if (rand() % 100 < 25) chaosAktywny = true;
+                        }
+
+                        // Drewniany Kij
+                        if (g_Stats.czyPosiada(113)) {
+                            if (rand() % 100 < 5) {
+                                std::cout << "Drewniany Kij sie zlamal! Koniec gry!" << std::endl;
+                                roundIsActive = false;
+                                auto* goScreen = dynamic_cast<GameOverScreen*>(uiScreens[GAME_OVER].get());
+                                if(goScreen) goScreen->updateStats(g_Stats);
+                                currentState = GAME_OVER;
+                            }
+                        }
                     }
                 }
 
@@ -437,18 +535,141 @@ int main()
                 {
                     if (auto* bal = dynamic_cast<BilardBall*>(obj.get())) bal->cleanBounces();
                 }
-                for (auto& obj : entities)
-                {
-                    if (auto* bal = dynamic_cast<BilardBall*>(obj.get()))
-                    {
-                        if (!bal->Put) bal->kolizjeKul(elapsed, entities, tarcieScianGlobal, tarcieStoluGlobal);
+                // ULEPSZENIA 203 (Kamień) i 204 (Bomba)
+                if (whiteBall && !whiteBall->Put) {
+                    for (auto& obj : entities) {
+                        if (auto* bal = dynamic_cast<BilardBall*>(obj.get())) {
+                            if (bal->identifier < 15 && !bal->Put) {
+                                // Liczymy dystans między białą a kolorową bilą
+                                float dystans = std::sqrt(square(whiteBall->getPosition().x - bal->getPosition().x) + square(whiteBall->getPosition().y - bal->getPosition().y));
+
+                                // Jeśli jest kolizja:
+                                if (dystans <= whiteBall->getRadius() + bal->getRadius() + 1.0f) {
+                                    bool maKamien = false, maBombe = false;
+                                    for (int id : g_Stats.ulepszeniaBil[bal->identifier]) {
+                                        if (id == 203) maKamien = true;
+                                        if (id == 204) maBombe = true;
+                                    }
+
+                                    // 203: Kamień (Biała staje w miejscu)
+                                    if (maKamien) {
+                                        whiteBall->setVelocity(sf::Vector2f(0, 0));
+                                    }
+
+                                    // 204: Bomba (Tylko raz na rundę)
+                                    if (maBombe && !g_bombaUzyta[bal->identifier]) {
+                                        g_bombaUzyta[bal->identifier] = true;
+                                        std::cout << "BUM! Bila " << bal->identifier << " wybuchla!" << std::endl;
+
+                                    // 210: Ogień (+5 punktów przy uderzeniu białą bilą w tę bilę)
+                                    bool maOgien = false;
+                                    for (int id : g_Stats.ulepszeniaBil[bal->identifier]) if (id == 210) maOgien = true;
+
+                                    if (maOgien && !g_ogienDotkniety[bal->identifier]) {
+                                        g_ogienDotkniety[bal->identifier] = true;
+                                        g_Stats.punktyTejRundy += 5;
+                                        std::cout << "Ogien! +5 punktow za zderzenie!" << std::endl;
+                                    }
+
+                                    // 215 Skarbonka i 217 Szkło
+                                    bool maSkarbonke = false, maSzklo = false;
+                                    for (int id : g_Stats.ulepszeniaBil[bal->identifier]) {
+                                        if (id == 215) maSkarbonke = true;
+                                        if (id == 217) maSzklo = true;
+                                    }
+
+                                    if (!g_hitZaliczony[bal->identifier]) {
+                                        g_hitZaliczony[bal->identifier] = true;
+
+                                        // 215: Skarbonka (+5 monet)
+                                        if (maSkarbonke) {
+                                            g_Stats.monety += 5;
+                                            g_Stats.monetyGlobalnie += 5;
+                                            g_monetyZarobioneWRundzie += 5; // Rejestrujemy dla Inwestycji
+                                            std::cout << "Skarbonka! +5 monet za uderzenie!" << std::endl;
+                                        }
+
+                                        // 217: Szkło (25% szans na zniszczenie)
+                                        if (maSzklo && (rand() % 100 < 25)) {
+                                            bal->Put = true; // Bila natychmiast pęka i znika!
+                                            std::cout << "Trzask! Szklo (bila " << bal->identifier << ") peklo od uderzenia!" << std::endl;
+                                        }
+                                    }
+
+                                    // Odpychamy wszystkie Inne bile w zasięgu 80 pikseli
+                                    for (auto& inneObj : entities) {
+                                        if (auto* innaBila = dynamic_cast<BilardBall*>(inneObj.get())) {
+                                            if (innaBila->identifier != bal->identifier && innaBila->identifier != 15 && !innaBila->Put) {
+                                                float d2 = std::sqrt(square(bal->getPosition().x - innaBila->getPosition().x) + square(bal->getPosition().y - innaBila->getPosition().y));
+                                                if (d2 < 80.0f && d2 > 0) {
+                                                    sf::Vector2f odrzut = (innaBila->getPosition() - bal->getPosition()) / d2;
+                                                    innaBila->setVelocity(innaBila->getVelocity() + odrzut * 150.0f); // Siła fali uderzeniowej
+                                                }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
+                // -------------------------------------------------------------
+                // Kij Ducha
+                if (timerDucha > 0.f) timerDucha -= elapsed.asSeconds();
+                bool duchAktywny = (timerDucha > 0.f && whiteBall != nullptr);
+
+                // Ukrywamy białą bilę przed systemem kolizji kul
+                if (duchAktywny) whiteBall->Put = true;
+
                 for (auto& obj : entities)
                 {
                     if (auto* bal = dynamic_cast<BilardBall*>(obj.get()))
                     {
-                        if (!bal->Put) bal->kolizjeScian(elapsed, tarcieScianGlobal, tarcieStoluGlobal);
+                        if (!bal->Put) {
+                            // 209: Duch (wyłączamy sprawdzanie zderzeń z innymi bilami)
+                            bool maDucha = false;
+                            if (bal->identifier < 15) {
+                                for (int id : g_Stats.ulepszeniaBil[bal->identifier]) if (id == 209) maDucha = true;
+                            }
+                            if (!maDucha) {
+                                bal->kolizjeKul(elapsed, entities, tarcieScianGlobal, tarcieStoluGlobal);
+                            }
+                        }
+                    }
+                }
+
+                // koniec ukrycia ducha
+                // Przywracamy białą bilę, żeby mogła normalnie odbijać się od ścian!
+                if (duchAktywny) whiteBall->Put = false;
+                // ---------------------------------------
+                for (auto& obj : entities)
+                {
+                    if (auto* bal = dynamic_cast<BilardBall*>(obj.get()))
+                    {
+                        if (!bal->Put) {
+                            float aktualneTarcieScian = tarcieScianGlobal;
+                            // Kij bilardzisty
+                            if (bal->identifier == 15 && g_Stats.czyPosiada(107)) {
+                                aktualneTarcieScian = 1.0f; // 1.0 brak strat prędkości
+                            }
+
+                            // 211: Diament - Zapisujemy prędkość PRZED odbiciem
+                            sf::Vector2f velPrzed = bal->getVelocity();
+
+                            bal->kolizjeScian(elapsed, aktualneTarcieScian, tarcieStoluGlobal);
+
+                            // 211: Diament - Zapisujemy prędkość PO odbiciu i sprawdzamy zmianę kierunku
+                            sf::Vector2f velPo = bal->getVelocity();
+                            if (bal->identifier < 15 && (velPrzed.x * velPo.x < 0 || velPrzed.y * velPo.y < 0)) {
+                                bool maDiament = false;
+                                for (int id : g_Stats.ulepszeniaBil[bal->identifier]) if (id == 211) maDiament = true;
+                                if (maDiament) {
+                                    g_Stats.punktyTejRundy += 5;
+                                    std::cout << "Diament! +5 punktow za odbicie od bandy!" << std::endl;
+                                }
+                            }
+                        }
                     }
                 }
                 for (auto& obj : entities)
@@ -467,6 +688,105 @@ int main()
                                         diff(bal->getPosition(), hol->getPosition()) < bal->getRadius() + hol->getRadius())
                                     {
                                         bal->ballPut();
+                                        // upgrade kijow 103 i 104
+                                        float bazoweMonety = 10.0f; // Tyle gracz dostaje za zwykłą bilę (możesz zmienić)
+                                        float mnoznikMonet = 1.0f;
+
+                                        if (g_Stats.czyPosiada(103)) mnoznikMonet += 0.20f; // Zloty grawerunek
+                                        if (g_Stats.czyPosiada(104)) mnoznikMonet += 0.30f; // Diamentowe fragmenty
+                                        if (chaosAktywny) mnoznikMonet *= 2.0f; // Kij Chaosu
+
+                                        // Dodajemy monety
+                                        int zarobek = static_cast<int>(bazoweMonety * mnoznikMonet);
+                                        g_Stats.monety += zarobek;
+                                        g_Stats.monetyGlobalnie += zarobek;
+
+                                        g_monetyZarobioneWRundzie += zarobek; // Zapisujemy zarobek do Inwestycji
+
+                                        // ULEPSZENIA WPADNIĘCIA BILI
+                                        if (bal->identifier < 15) {
+                                            bool maInwestycje = false, maSzklo = false;
+                                            for (int id : g_Stats.ulepszeniaBil[bal->identifier]) {
+                                                if (id == 216) maInwestycje = true;
+                                                if (id == 217) maSzklo = true;
+                                            }
+
+                                            // 216: Inwestycja (Podwaja wszystkie monety zarobione do tej pory w rundzie)
+                                            if (maInwestycje) {
+                                                g_Stats.punktyTejRundy -= 1; // Odejmuje bazowy 1 punkt za wbicie
+                                                g_Stats.monety += g_monetyZarobioneWRundzie; // Podwajamy
+                                                g_Stats.monetyGlobalnie += g_monetyZarobioneWRundzie;
+                                                g_monetyZarobioneWRundzie *= 2;
+                                                std::cout << "Inwestycja! 0 pkt, ale PODWOJONO monety z tej rundy!" << std::endl;
+                                            }
+
+                                            // 217: Szkło (Mnoży OBECNE punkty w rundzie x3)
+                                            if (maSzklo) {
+                                                g_Stats.punktyTejRundy *= 3;
+                                                std::cout << "Szklo wpadlo! Twoje punkty w tej rundzie pomnozone x3!" << std::endl;
+                                            }
+                                        }
+
+                                        // ULEPSZENIA WPADNIĘCIA BILI (Gwiazda, Cel, Korona)
+                                        if (bal->identifier < 15) {
+                                            bool maGwiazde = false, maCel = false, maKorone = false;
+                                            for (int id : g_Stats.ulepszeniaBil[bal->identifier]) {
+                                                if (id == 212) maGwiazde = true;
+                                                if (id == 213) maCel = true;
+                                                if (id == 214) maKorone = true;
+                                            }
+
+                                            // 214: Korona (+10 monet extra)
+                                            if (maKorone) {
+                                                g_Stats.monety += 10;
+                                                g_Stats.monetyGlobalnie += 10;
+                                                std::cout << "Korona! +10 monet!" << std::endl;
+                                            }
+
+                                            // 212: Gwiazda (Zakładając że baza to 1 pkt, dorzucamy +1 żeby było 2x)
+                                            if (maGwiazde) g_Stats.punktyTejRundy += 1;
+
+                                            // 213: Cel (Zakładając że baza to 1 pkt, dorzucamy +4 żeby było 5x)
+                                            if (maCel && !g_bylaJuzWbitaBila) {
+                                                g_Stats.punktyTejRundy += 4;
+                                                std::cout << "Cel zrealizowany! 5x punktow za pierwsza bile!" << std::endl;
+                                            }
+                                        }
+
+                                        // Kiedy jakakolwiek kolorowa bila wpada, zaznaczamy że to już nie jest pierwsza
+                                        if (bal->identifier < 15) g_bylaJuzWbitaBila = true;
+                                        // ---------------------------------------------------------
+
+                                        // Kij krolewski
+                                        if (g_Stats.czyPosiada(106)) {
+                                            g_Stats.punktyTejRundy += 1;
+                                        }
+                                        // Kij Szczęścia
+                                        if (g_Stats.czyPosiada(112)) {
+                                            int losSzczescia = rand() % 100;
+                                            if (losSzczescia < 10) {
+                                                g_Stats.punktyTejRundy += 2; // Daje +2 punkty ekstra (razem z bazowym wychodzi x3)
+                                                std::cout << "Kij Szczescia: Potrojne punkty!" << std::endl;
+                                            } else if (losSzczescia < 20) {
+                                                g_Stats.punktyTejRundy = 0; // Brutalne wyzerowanie całej rundy
+                                                std::cout << "Kij Szczescia: Wyzerowano punkty rundy!" << std::endl;
+                                            }
+                                        }
+                                        // Kij Faulujacy
+                                        if (bal->identifier == 15 && g_Stats.czyPosiada(114)) {
+                                            if (rand() % 100 < 20) {
+                                                g_Stats.monety += 10;
+                                                g_Stats.monetyGlobalnie += 10;
+                                                std::cout << "Kij Faulujacy: +10 monet za faul!" << std::endl;
+                                            }
+                                        }
+
+                                        // Kij Wampira
+                                        if (bal->identifier < 15 && g_Stats.czyPosiada(115)) {
+                                            if (strzaly > 0) strzaly--; // "Cofa" oddany strzał = daje Ci bonusowy!
+                                            std::cout << "Kij Wampira: Odzyskano 1 strzal!" << std::endl;
+                                        }
+
                                         break;
                                     }
                                     indeksDziury++;
@@ -481,6 +801,26 @@ int main()
                 {
                     if (auto* bal = dynamic_cast<BilardBall*>(obj.get()))
                     {
+                        // 208: Magnes (Przyciąganie do dziury w trakcie ruchu)
+                        if (bal->identifier < 15 && !bal->stationary() && !bal->Put) {
+                            bool maMagnes = false;
+                            for (int id : g_Stats.ulepszeniaBil[bal->identifier]) if (id == 208) maMagnes = true;
+
+                            if (maMagnes) {
+                                for (auto& holeObj : entities) {
+                                    if (auto* hol = dynamic_cast<BilardHole*>(holeObj.get())) {
+                                        float dX = hol->getPosition().x - bal->getPosition().x;
+                                        float dY = hol->getPosition().y - bal->getPosition().y;
+                                        float dist = std::sqrt(dX*dX + dY*dY);
+                                        // Jeśli dziura jest blisko (zasięg 80 pikseli), magnes łapie i wciąga bilę
+                                        if (dist < 80.0f && dist > 0) {
+                                            bal->setVelocity(bal->getVelocity() + sf::Vector2f(dX/dist * 8.0f, dY/dist * 8.0f));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         float mnoznikTarcia = levelManager.zmniejszoneTarcieAktywne ? levelManager.tarcieStoluGlobal : 1.f;
                         if (levelManager.obecnyBoss == BossType::Mud)
                         {
@@ -550,10 +890,6 @@ int main()
                     {
                         if(widocznoscCelu)
                         {
-                            float mnoznikCelownika = 2.0f; // Bazowa długość
-                            if (g_Stats.czyPosiada(100)) {
-                                mnoznikCelownika *= 2.0f; // Snajper: 2x dłuższa linia
-                            }
 
                             sf::Vector2f plin;
                             plin.x = whiteBall->getPosition().x + (2 * velc / dist_cent) * (whiteBall->getPosition().x - p.x);

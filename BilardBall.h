@@ -45,6 +45,7 @@ public:
     void setVelocity(sf::Vector2f vel);
     bool stationary();
     void cleanBounces();
+    sf::Vector2f getVelocity() const;
 
     // Nowe, polimorficzne kolizje
     void kolizjeKul(const sf::Time& elapsed, std::vector<std::unique_ptr<GameObject>>& entities, float tarcieScianGlobal, float tarcieStoluGlobal);
