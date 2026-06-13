@@ -29,8 +29,7 @@ BossType LevelManager::bossForRound(int runda) {
 }
 
 void LevelManager::ustawCelPunktow() {
-    celPunktow = 0;
-    //celPunktow = static_cast<int>(2 * std::pow(1.5, g_Stats.rundy - 1));
+    celPunktow = static_cast<int>(2 * std::pow(1.5, g_Stats.rundy - 1));
 }
 
 bool LevelManager::czyDziuraZablokowana(int indeksDziury) const {

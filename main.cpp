@@ -241,8 +241,8 @@ int main()
     float silaStrzalu = 1;
     float tarcieStoluGlobal = 1;
     float tarcieScianGlobal = 1;
-    int maxStrzaly = 1;
-    bool widocznoscCelu = true; // do testów, w grze zmienić na false żeby można było kupić
+    int maxStrzaly = 5;
+    bool widocznoscCelu = false; // do testów, w grze zmienić na false żeby można było kupić
 
     // Zmienne do działania
     // int celPunktow = 1;
@@ -326,27 +326,45 @@ int main()
                 if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
                     int akcja = uiScreens[currentState]->handleClick(mouse_virtual_pos);
 
-                    if (akcja == 1)
+                    if (akcja == 1) // NEW RUN
                     {
-                        std::cout << "debug - Przycisk PLAY klikniety" << std::endl;
-                        g_Stats.ResetujGre();
-                        resetBoard(entities, pozycjebazoweX, pozycjebazoweY, strzaly);
+                        std::cout << "debug - Przycisk NEW RUN klikniety" << std::endl;
+                        resetCalejRozgrywki(entities, pozycjebazoweX, pozycjebazoweY, strzaly); // Twój twardy reset
                         levelManager.przygotujRunde();
                         roundIsActive = true; currentState = PLAYING;
                     }
-                    else if (akcja == 2) { std::cout << "Ustawienia"<<std::endl; }
-                    else if (akcja == 3) { std::cout << "Zamkniecie okna"<<std::endl; window.close(); }
-                    else if (akcja == 4)
+                    else if (akcja == 7) // CONTINUE RUN
                     {
-                        g_Stats.ResetujGre();
+                        std::cout << "debug - Przycisk CONTINUE klikniety" << std::endl;
+
+                        // Sprawdzamy czy udalo sie wczytac
+                        if (g_Stats.WczytajGre()) {
+                            resetBoard(entities, pozycjebazoweX, pozycjebazoweY, strzaly);
+                        } else {
+                            // Jesli nie ma zapisu, traktujemy to jak NEW RUN (twardy reset)
+                            resetCalejRozgrywki(entities, pozycjebazoweX, pozycjebazoweY, strzaly);
+                        }
+
+                        levelManager.przygotujRunde();
+                        roundIsActive = true; currentState = PLAYING;
+                    }
+                    else if (akcja == 4) // ZAGRAJ PONOWNIE (GAME OVER)
+                    {
+                        std::cout << "debug - Przycisk TRY AGAIN klikniety" << std::endl;
                         resetCalejRozgrywki(entities, pozycjebazoweX, pozycjebazoweY, strzaly);
                         levelManager.przygotujRunde();
                         roundIsActive = true; currentState = PLAYING;
                     }
-                    else if (akcja == 5) { currentState = MENU; }
+                    else if (akcja == 3) { std::cout << "Zamkniecie okna"<<std::endl; window.close(); }
+                    else if (akcja == 5)
+                    {
+                        uiScreens[MENU] = std::make_unique<MainMenu>(rozdzielczosc);
+                        currentState = MENU;
+                    }
                     else if (akcja == 6)
                     {
                         g_Stats.rundy++;
+                        g_Stats.ZapiszGre();
                         levelManager.przygotujRunde();
                         resetBoard(entities, pozycjebazoweX, pozycjebazoweY, strzaly);
                         roundIsActive = true; currentState = PLAYING;
@@ -459,6 +477,7 @@ int main()
                     else
                     {
                         // Lose
+                        g_Stats.UsunZapis();
                         roundIsActive = false;
                         auto* goScreen = dynamic_cast<GameOverScreen*>(uiScreens[GAME_OVER].get());
                         if(goScreen) goScreen->updateStats(g_Stats);
@@ -521,6 +540,7 @@ int main()
                         if (g_Stats.czyPosiada(113)) {
                             if (rand() % 100 < 5) {
                                 std::cout << "Drewniany Kij sie zlamal! Koniec gry!" << std::endl;
+                                g_Stats.UsunZapis();
                                 roundIsActive = false;
                                 auto* goScreen = dynamic_cast<GameOverScreen*>(uiScreens[GAME_OVER].get());
                                 if(goScreen) goScreen->updateStats(g_Stats);

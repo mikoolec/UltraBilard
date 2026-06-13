@@ -6,10 +6,11 @@
 
 class MainMenu : public MenuScreen {
 private:
-    sf::Texture textNewRunNormal, textNewRunHover, textContinueNormal, textContinueHover, textSettingsNormal, textSettingsHover, textQuitNormal, textQuitHover;
-    sf::Sprite btnNewRun, btnContinue, btnSettings, btnQuit;
+    sf::Texture textNewRunNormal, textNewRunHover, textContinueNormal, textContinueHover, textQuitNormal, textQuitHover;
+    sf::Sprite btnNewRun, btnContinue, btnQuit;
     sf::Font font;
     sf::Text titleText;
+    bool moznaKontynuowac;
 
     void setupButton(sf::Sprite& btn, sf::Texture& textNorm, sf::Texture& textHov, std::string pathNorm, std::string pathHov, float x, float y);
 

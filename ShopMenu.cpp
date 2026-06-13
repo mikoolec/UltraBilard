@@ -458,7 +458,6 @@ int ShopMenu::handleClick(sf::Vector2f mousePos)
         }
 
         if (sprBtnNext.getGlobalBounds().contains(mousePos)) {
-            g_Stats.ZapiszGre(); // ZAPIS gry
             return 6; // Next Round
         }
 

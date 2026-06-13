@@ -5,6 +5,7 @@
 #include<map>
 #include <fstream>
 #include<iostream>
+#include <cstdio>
 
 enum GameState {
     MENU,
@@ -16,7 +17,7 @@ enum GameState {
 struct GameStats {
     int punktyTejRundy = 0;
     int punktyGlobalnie = 0;
-    int monety = 1000;                                                   // do wyzerowania!!!!!!!!
+    int monety = 0;                                                   // do wyzerowania!!!!!!!!
     int monetyGlobalnie = 0;
     int rundy = 1;
     int wbiteBileGlobalnie = 0;
@@ -70,6 +71,7 @@ struct GameStats {
         if (plik.is_open()) {
             plik << monety << "\n";
             plik << punktyGlobalnie << "\n";
+            plik << rundy << "\n"; //
 
             // 1. Zapis ekwipunku Kijów (najpierw ilość, potem same ID)
             plik << posiadaneUpgradeID.size() << "\n";
@@ -88,11 +90,12 @@ struct GameStats {
         }
     }
 
-    inline void WczytajGre() {
+    inline bool WczytajGre() {
         std::ifstream plik("save.txt");
         if (plik.is_open()) {
             plik >> monety;
             plik >> punktyGlobalnie;
+            plik >> rundy;
 
             // 1. Wczytywanie Kijów
             int iloscKijow;
@@ -118,9 +121,21 @@ struct GameStats {
 
             plik.close();
             std::cout << "WCZYTANO STAN GRY!" << std::endl;
+            return true; // <--- UDAŁO SIĘ
         } else {
-            std::cout << "Brak pliku save.txt (To normalne przy pierwszym uruchomieniu)." << std::endl;
+            std::cout << "Brak pliku zapisu. Uruchamiam nowa gre." << std::endl;
+            return false; // <--- NIE MA PLIKU
         }
+    }
+
+    inline void UsunZapis() {
+        // 1. Otwieramy plik w trybie trunc (czyszczenie), żeby system na pewno go "puścił" i wymazał dane
+        std::ofstream plik("save.txt", std::ofstream::trunc);
+        if (plik.is_open()) plik.close();
+
+        // 2. Fizycznie usuwamy plik z dysku
+        std::remove("save.txt");
+        std::cout << "ZAPIS USUNIETY (Game Over)!" << std::endl;
     }
 };
 
