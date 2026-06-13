@@ -86,17 +86,23 @@ void ZaladujTekstureScian(sf::Texture& sciany_stolu)
 // funkcja resetujące korzystające z głównego kontenera
 void resetBoard(std::vector<std::unique_ptr<GameObject>>& entities, const std::vector<float>& MiejscaX, const std::vector<float>& MiejscaY, int& shots) {
     std::cout << "debug - Start resetBoard..." << std::endl;
-    for(int i=0; i<15; i++) g_bombaUzyta[i] = false;
+    for(int i=0; i<15; i++) {
+        g_bombaUzyta[i] = false;
+        g_ogienDotkniety[i] = false;
+        g_hitZaliczony[i] = false;
+    }
     g_bylaJuzWbitaBila = false; // Reset Celu dla nowej rundy
     g_monetyZarobioneWRundzie = 0; // Reset Inwestycji na nową rundę
     for (auto& obj : entities) {
         if (auto* bal = dynamic_cast<BilardBall*>(obj.get())) {
             bal->Put = false;
+            bal->Held = false;
+            bal->cleanBounces();
             if (bal->identifier >= 0 && bal->identifier < MiejscaX.size()) {
                 bal->setPosition(MiejscaX[bal->identifier], MiejscaY[bal->identifier]);
             }
             bal->setVelocity(sf::Vector2f(0, 0));
-            bal->resetStats();
+            bal->resetBaseStats();
 
             // ULEPSZENIA BAZOWE BIL (Kowadło, Balon, Sprężyna) ---
             if (bal->identifier >= 0 && bal->identifier < 15) {
@@ -118,6 +124,8 @@ void resetBoard(std::vector<std::unique_ptr<GameObject>>& entities, const std::v
                     }
                 }
             }
+
+            bal->resetStats();
         }
     }
     shots = 0;
@@ -135,7 +143,6 @@ void mult( std::vector<float> &vec, float num )
 
 void resetCalejRozgrywki(std::vector<std::unique_ptr<GameObject>>& entities, const std::vector<float>& MiejscaX, const std::vector<float>& MiejscaY, int& shots)
 {
-    resetBoard(entities, MiejscaX, MiejscaY, shots);
     g_Stats.punktyGlobalnie = 0;
     g_Stats.monety = 10;
     g_Stats.monetyGlobalnie = 0;
@@ -146,6 +153,8 @@ void resetCalejRozgrywki(std::vector<std::unique_ptr<GameObject>>& entities, con
     // clear eq
     g_Stats.posiadaneUpgradeID.clear();
     g_Stats.ulepszeniaBil.clear();
+
+    resetBoard(entities, MiejscaX, MiejscaY, shots);
 
     std::cout<<"debug - resetujemy runa i czyscimy ekwipunek"<<std::endl;
 }
@@ -261,6 +270,19 @@ int main()
     sf::Vector2f p;
     sf::Clock clock;
 
+    auto resetTransientRoundState = [&]() {
+        lastHeldBall = -1;
+        areBallsStationary = false;
+        isLeftPressed = false;
+        isDragging = false;
+        accelerateWhiteNow = false;
+        chaosAktywny = false;
+        timerDucha = 0.f;
+        velc = 0.f;
+        dist_cent = 0.f;
+        addVelocity = sf::Vector2f(0, 0);
+    };
+
     GameState currentState=MENU;
     MainMenu glowneMenu(rozdzielczosc);
     GameOverScreen ekranPrzegranej(rozdzielczosc);
@@ -327,6 +349,7 @@ int main()
                     {
                         std::cout << "debug - Przycisk NEW RUN klikniety" << std::endl;
                         resetCalejRozgrywki(entities, pozycjebazoweX, pozycjebazoweY, strzaly); // Twój twardy reset
+                        resetTransientRoundState();
                         levelManager.przygotujRunde();
                         roundIsActive = true; currentState = PLAYING;
                     }
@@ -342,6 +365,7 @@ int main()
                             resetCalejRozgrywki(entities, pozycjebazoweX, pozycjebazoweY, strzaly);
                         }
 
+                        resetTransientRoundState();
                         levelManager.przygotujRunde();
                         roundIsActive = true; currentState = PLAYING;
                     }
@@ -349,6 +373,7 @@ int main()
                     {
                         std::cout << "debug - Przycisk TRY AGAIN klikniety" << std::endl;
                         resetCalejRozgrywki(entities, pozycjebazoweX, pozycjebazoweY, strzaly);
+                        resetTransientRoundState();
                         levelManager.przygotujRunde();
                         roundIsActive = true; currentState = PLAYING;
                     }
@@ -364,6 +389,7 @@ int main()
                         g_Stats.ZapiszGre();
                         levelManager.przygotujRunde();
                         resetBoard(entities, pozycjebazoweX, pozycjebazoweY, strzaly);
+                        resetTransientRoundState();
                         roundIsActive = true; currentState = PLAYING;
                         std::cout << "Runda " << g_Stats.rundy << std::endl;
                     }
@@ -708,9 +734,19 @@ int main()
                                     if (!levelManager.czyDziuraZablokowana(indeksDziury) &&
                                         diff(bal->getPosition(), hol->getPosition()) < bal->getRadius() + hol->getRadius())
                                     {
+                                        const bool wbitaBiala = (bal->identifier == 15);
                                         bal->ballPut();
+
+                                        if (wbitaBiala) {
+                                            if (g_Stats.czyPosiada(114) && rand() % 100 < 20) {
+                                                g_Stats.monety += 10;
+                                                g_Stats.monetyGlobalnie += 10;
+                                                std::cout << "Kij Faulujacy: +10 monet za faul!" << std::endl;
+                                            }
+                                            break;
+                                        }
+
                                         g_Stats.punktyTejRundy += 3;
-                                        g_Stats.wbiteBileGlobalnie++;
                                         // upgrade kijow 103 i 104
                                         float bazoweMonety = 10.0f; // Tyle gracz dostaje za zwykłą bilę
                                         float mnoznikMonet = 1.0f;
@@ -795,15 +831,6 @@ int main()
                                                 std::cout << "Kij Szczescia: Wyzerowano punkty rundy!" << std::endl;
                                             }
                                         }
-                                        // Kij Faulujacy
-                                        if (bal->identifier == 15 && g_Stats.czyPosiada(114)) {
-                                            if (rand() % 100 < 20) {
-                                                g_Stats.monety += 10;
-                                                g_Stats.monetyGlobalnie += 10;
-                                                std::cout << "Kij Faulujacy: +10 monet za faul!" << std::endl;
-                                            }
-                                        }
-
                                         // Kij Wampira
                                         if (bal->identifier < 15 && g_Stats.czyPosiada(115)) {
                                             if (strzaly > 0) strzaly--; // "Cofa" oddany strzał = daje Ci bonusowy!

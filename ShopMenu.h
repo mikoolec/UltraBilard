@@ -77,6 +77,7 @@ private:
     // Szczegoly bil
     sf::RectangleShape darkOverlay;
     std::vector<sf::CircleShape> inventoryBalls;
+    std::vector<int> inventoryBallIds;
     sf::Text closePromptText;
 
     // Losowanie sklepu
@@ -88,7 +89,10 @@ private:
     // Refresh button
     int kosztRefresha = 30;
 
-    ShopButton* pendingBallUpgrade = nullptr;
+    bool pendingBallUpgradeActive = false;
+    int pendingBallUpgradeId = -1;
+    int pendingBallUpgradeCena = 0;
+    std::string pendingBallUpgradeNazwa;
 
 public:
     ShopMenu(std::pair<int,int> res);

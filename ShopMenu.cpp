@@ -149,6 +149,13 @@ ShopMenu::ShopMenu(std::pair<int,int> res) {
     float spacing = 35.0f;
     float startX = res.first / 2.0f;
     float startY_triangle = 100.0f;
+    const std::vector<int> rackOrder = {
+        0,
+        9, 10,
+        6, 8, 7,
+        11, 13, 14, 12,
+        5, 4, 3, 2, 1
+    };
 
     int ballCount = 0;
     for (int row = 0; row < 5; row++)
@@ -164,6 +171,7 @@ ShopMenu::ShopMenu(std::pair<int,int> res) {
             ball.setFillColor(sf::Color(180, 180, 180));
 
             inventoryBalls.push_back(ball);
+            inventoryBallIds.push_back(rackOrder[ballCount]);
             ballCount++;
         }
     }
@@ -174,6 +182,13 @@ void ShopMenu::OdswiezPrzedmioty()
 {
     ballButtons.clear();
     cueButtons.clear();
+    hoveredItem = nullptr;
+    pendingBallUpgradeActive = false;
+    pendingBallUpgradeId = -1;
+    pendingBallUpgradeCena = 0;
+    pendingBallUpgradeNazwa.clear();
+    showTooltip = false;
+    currentSubState = SHOP_MAIN;
 
     wylosowaneKije.clear();
     wylosowaneBile.clear();
@@ -406,11 +421,12 @@ void ShopMenu::updateHover(sf::Vector2f mousePos)
         {
             if (inventoryBalls[i].getGlobalBounds().contains(mousePos))
             {
-                tooltipName.setString("Bila " + std::to_string(i+1)); // Bila 1, Bila 2...
+                int ballId = inventoryBallIds[i];
+                tooltipName.setString("Bila " + std::to_string(ballId + 1)); // Bila 1, Bila 2...
 
                 // Budujemy listę posiadanych ulepszeń dla tej konkretnej bili
                 std::string listaBil = "";
-                for (int id : g_Stats.ulepszeniaBil[i]) {
+                for (int id : g_Stats.ulepszeniaBil[ballId]) {
                     for (const auto& upg : PelnaBazaUlepszen) {
                         if (upg.id == id) {
                             listaBil += "- " + upg.nazwa + "\n";
@@ -477,7 +493,9 @@ void ShopMenu::updateHover(sf::Vector2f mousePos)
 
 int ShopMenu::handleClick(sf::Vector2f mousePos)
 {
-    if (currentSubState == SHOP_MAIN)
+    ShopSubState stateAtClick = currentSubState;
+
+    if (stateAtClick == SHOP_MAIN)
     {
         // Przejście do widoku szczegółów bil
         if (sprTrojkatSrodek.getGlobalBounds().contains(mousePos))
@@ -490,22 +508,41 @@ int ShopMenu::handleClick(sf::Vector2f mousePos)
             return 6; // Next Round
         }
 
-        if (hoveredItem != nullptr) {
-            if (hoveredItem->kupiony) {
+        ShopButton* clickedItem = nullptr;
+        for (auto& btn : cueButtons) {
+            if (btn.shape.getGlobalBounds().contains(mousePos)) {
+                clickedItem = &btn;
+                break;
+            }
+        }
+        if (clickedItem == nullptr) {
+            for (auto& btn : ballButtons) {
+                if (btn.shape.getGlobalBounds().contains(mousePos)) {
+                    clickedItem = &btn;
+                    break;
+                }
+            }
+        }
+
+        if (clickedItem != nullptr) {
+            if (clickedItem->kupiony) {
                 std::cout << "Sklep - Wykupiles to w tym losowaniu" << std::endl;
             }
-            else if (hoveredItem->id >= 200)
+            else if (clickedItem->id >= 200)
             {
                 // --- KUPUJEMY BILĘ: Zatrzymujemy transakcję i otwieramy trójkąt ---
-                pendingBallUpgrade = hoveredItem;
+                pendingBallUpgradeActive = true;
+                pendingBallUpgradeId = clickedItem->id;
+                pendingBallUpgradeCena = clickedItem->cena;
+                pendingBallUpgradeNazwa = clickedItem->nazwa;
                 currentSubState = SHOP_BALL_INVENTORY;
             }
-            else if (g_Stats.kupUlepszenie(hoveredItem->cena, hoveredItem->id))
+            else if (g_Stats.kupUlepszenie(clickedItem->cena, clickedItem->id))
             {
                 // --- KUPUJEMY KIJ: Płacimy i dostajemy od razu ---
-                std::cout << "Sklep - Kupiono KIJ: " << hoveredItem->nazwa << std::endl;
-                hoveredItem->kupiony = true;
-                hoveredItem->shape.setFillColor(sf::Color(50, 150, 50));
+                std::cout << "Sklep - Kupiono KIJ: " << clickedItem->nazwa << std::endl;
+                clickedItem->kupiony = true;
+                clickedItem->shape.setFillColor(sf::Color(50, 150, 50));
             }
             else
             {
@@ -513,20 +550,22 @@ int ShopMenu::handleClick(sf::Vector2f mousePos)
             }
         }
     }
-    else if (currentSubState == SHOP_BALL_INVENTORY) {
+    else if (stateAtClick == SHOP_BALL_INVENTORY) {
         bool clickedOnBall = false;
 
         for (int i = 0; i < inventoryBalls.size(); i++) {
             if (inventoryBalls[i].getGlobalBounds().contains(mousePos)) {
                 clickedOnBall = true;
 
+                int ballId = inventoryBallIds[i];
+
                 // Jeśli jesteśmy tu po to, żeby przypisać ulepszenie ze sklepu:
-                if (pendingBallUpgrade != nullptr) {
+                if (pendingBallUpgradeActive) {
 
                     // 1. Sprawdzamy, czy ta konkretna bila MA JUŻ to ulepszenie
                     bool maJuzTo = false;
-                    for (int posiadaneID : g_Stats.ulepszeniaBil[i]) {
-                        if (posiadaneID == pendingBallUpgrade->id) maJuzTo = true;
+                    for (int posiadaneID : g_Stats.ulepszeniaBil[ballId]) {
+                        if (posiadaneID == pendingBallUpgradeId) maJuzTo = true;
                     }
 
                     if (maJuzTo) {
@@ -535,19 +574,27 @@ int ShopMenu::handleClick(sf::Vector2f mousePos)
                     }
 
                     // 2. Pobieramy opłatę i przydzielamy ulepszenie!
-                    if (g_Stats.kupUlepszenie(pendingBallUpgrade->cena, pendingBallUpgrade->id)) {
-                        g_Stats.ulepszeniaBil[i].push_back(pendingBallUpgrade->id); // Dodajemy do szufladki tej bili
+                    if (g_Stats.kupUlepszenie(pendingBallUpgradeCena, pendingBallUpgradeId)) {
+                        g_Stats.ulepszeniaBil[ballId].push_back(pendingBallUpgradeId); // Dodajemy do szufladki tej bili
 
-                        std::cout << "Bila " << i+1 << " dostala: " << pendingBallUpgrade->nazwa << "!" << std::endl;
+                        std::cout << "Bila " << ballId + 1 << " dostala: " << pendingBallUpgradeNazwa << "!" << std::endl;
 
-                        pendingBallUpgrade->kupiony = true; // Wyszarzamy przycisk w sklepie
-                        pendingBallUpgrade->shape.setFillColor(sf::Color(50, 150, 50));
+                        for (auto& btn : ballButtons) {
+                            if (btn.id == pendingBallUpgradeId) {
+                                btn.kupiony = true;
+                                btn.shape.setFillColor(sf::Color(50, 150, 50));
+                                break;
+                            }
+                        }
                     } else {
                         std::cout << "Za malo monet, aby przypisac do bili!" << std::endl;
                     }
 
                     // Zamykamy trójkąt, wracamy do sklepu
-                    pendingBallUpgrade = nullptr;
+                    pendingBallUpgradeActive = false;
+                    pendingBallUpgradeId = -1;
+                    pendingBallUpgradeCena = 0;
+                    pendingBallUpgradeNazwa.clear();
                     currentSubState = SHOP_MAIN;
                 }
                 break;
@@ -556,12 +603,15 @@ int ShopMenu::handleClick(sf::Vector2f mousePos)
 
         // Anulowanie zakupu, jeśli gracz kliknie w tło (poza bilami)
         if (!clickedOnBall) {
-            pendingBallUpgrade = nullptr;
+            pendingBallUpgradeActive = false;
+            pendingBallUpgradeId = -1;
+            pendingBallUpgradeCena = 0;
+            pendingBallUpgradeNazwa.clear();
             currentSubState = SHOP_MAIN;
         }
     }
 
-    if (sprBtnRefresh.getGlobalBounds().contains(mousePos))
+    if (stateAtClick == SHOP_MAIN && currentSubState == SHOP_MAIN && sprBtnRefresh.getGlobalBounds().contains(mousePos))
     {
         if (g_Stats.monety >= kosztRefresha) {
             g_Stats.monety -= kosztRefresha;
@@ -666,5 +716,3 @@ void ShopMenu::draw(sf::RenderTexture& target) {
         if (!tooltipPrice.getString().isEmpty()) target.draw(tooltipPrice);
     }
 }
-
-

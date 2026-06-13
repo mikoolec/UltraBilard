@@ -14,14 +14,7 @@ BilardBall::BilardBall(float radius, const sf::Vector2f& position, int id)
     setOrigin(sf::Vector2f(radius, radius));
     rotation = 0;
 
-    tarcieBaza = 0.125f;
-    tarciescianBaza = 5.f;
-    punktyBaza = 1;
-    mnoznikBaza = 1;
-    wielkoscBaza = 1;
-    hitpunktyBaza = 0;
-    hitscianaBaza = 0;
-    hitmonetyBaza = 0;
+    resetBaseStats();
 
     wallhitSFX.setBuffer(g_Audio.wallhitBuffer);
     wallhitSFX.setVolume(20.f);
@@ -30,6 +23,18 @@ BilardBall::BilardBall(float radius, const sf::Vector2f& position, int id)
 
     // Ustawienie początkowych statystyk
     resetStats();
+}
+
+void BilardBall::resetBaseStats() {
+    tarcieBaza = 0.125f;
+    tarciescianBaza = 5.f;
+    punktyBaza = 1;
+    mnoznikBaza = 1;
+    wielkoscBaza = 1;
+    hitpunktyBaza = 0;
+    hitscianaBaza = 0;
+    monetyBaza = 0;
+    hitmonetyBaza = 0;
 }
 
 void BilardBall::resetStats() {
@@ -53,8 +58,10 @@ void BilardBall::ballPut() {
     if (this->identifier != 15) {
         g_Stats.punktyTejRundy += this->wartoscPunktowa;
         g_Stats.punktyTejRundy *= this->mnoznikPunktowy;
-        g_Stats.monety += this->monetyBaza;
-        g_Stats.monetyGlobalnie += g_Stats.monety;
+        if (this->monetyBaza != 0) {
+            g_Stats.monety += this->monetyBaza;
+            g_Stats.monetyGlobalnie += this->monetyBaza;
+        }
         g_Stats.wbiteBileGlobalnie += 1;
         this->Put = true;
     } else {
@@ -77,8 +84,9 @@ void BilardBall::update(const sf::Time& elapsed) {
 }
 
 void BilardBall::draw(sf::RenderTexture& target) {
+    if (Put) return;
 
-    if (!Put) target.draw(*this);
+    target.draw(*this);
 
     // Pobieramy ulepszenia tej bili z g_Stats
     if (identifier >= 0 && identifier < 15) {
@@ -155,8 +163,10 @@ void BilardBall::kolizjeKul(const sf::Time& elapsed, std::vector<std::unique_ptr
         {
             if (diff(this->getPosition(), bal->getPosition()) < this->getRadius() + bal->getRadius()) {
                 g_Stats.punktyTejRundy += this->punktyNaUderzeniuKuli;
-                g_Stats.monety += this->hitmonetyBaza;
-                g_Stats.monetyGlobalnie += g_Stats.monety;
+                if (this->hitmonetyBaza != 0) {
+                    g_Stats.monety += this->hitmonetyBaza;
+                    g_Stats.monetyGlobalnie += this->hitmonetyBaza;
+                }
                 bal->saveBounces.emplace_back(this->identifier);
                 this->ballhitSFX.play();
 

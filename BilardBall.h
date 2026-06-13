@@ -39,6 +39,7 @@ public:
     void draw(sf::RenderTexture& target) override;
 
     // Metody własne Bili
+    void resetBaseStats();
     void resetStats();
     void rob_tarcie(float sila, bool sciana);
     void ballPut();
