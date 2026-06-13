@@ -242,7 +242,7 @@ int main()
     float tarcieStoluGlobal = 1;
     float tarcieScianGlobal = 1;
     int maxStrzaly = 5;
-    bool widocznoscCelu = false; // do testów, w grze zmienić na false żeby można było kupić
+    bool widocznoscCelu = true;
 
     // Zmienne do działania
     // int celPunktow = 1;

@@ -57,6 +57,10 @@ private:
     sf::Font font;
     sf::Text titleText;
 
+    sf::Texture texKijSklep;
+    sf::Sprite sprKijSklep;
+    sf::CircleShape sprBilaSklep;
+
     // Srodkowe elementy
     sf::Text inventoryText;
 

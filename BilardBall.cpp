@@ -3,6 +3,7 @@
 #include "AudioManager.h"
 #include "Globals.h"
 #include <iostream>
+#include <cmath>
 
 using namespace std;
 
@@ -76,9 +77,62 @@ void BilardBall::update(const sf::Time& elapsed) {
 }
 
 void BilardBall::draw(sf::RenderTexture& target) {
-    if (!Put) target.draw(*this);
-}
 
+    if (!Put) target.draw(*this);
+
+    // Pobieramy ulepszenia tej bili z g_Stats
+    if (identifier >= 0 && identifier < 15) {
+        const auto& ulepszenia = g_Stats.ulepszeniaBil[identifier];
+        int ilosc = ulepszenia.size();
+
+        if (ilosc > 0) {
+            float promienKropki = 2.0f;
+
+            // POPRAWKA: Używamy getRadius() zamiast zmiennej radius
+            float odlegloscOdSrodka = getRadius() - 3.5f;
+
+            for (int i = 0; i < ilosc; i++) {
+                int id = ulepszenia[i];
+                sf::Color kolor(255, 255, 255);
+
+                switch (id) {
+                    case 201: kolor = sf::Color(80, 80, 80); break;   // Kowadlo (Szary)
+                    case 202: kolor = sf::Color(135, 206, 235); break; // Balon (Błękit)
+                    case 203: kolor = sf::Color(139, 69, 19); break;  // Kamien (Brąz)
+                    case 204: kolor = sf::Color(220, 20, 60); break;  // Bomba (Czerwień)
+                    case 205: kolor = sf::Color(50, 205, 50); break;  // Sprezyna (Zieleń)
+                    case 206: kolor = sf::Color(0, 255, 255); break;  // Lód (Cyjan)
+                    case 207: kolor = sf::Color(255, 215, 0); break;  // Klej (Żółty)
+                    case 208: kolor = sf::Color(138, 43, 226); break; // Magnes (Fiolet)
+                    case 209: kolor = sf::Color(255, 255, 255); break;// Duch (Biały)
+                    case 210: kolor = sf::Color(255, 140, 0); break;  // Ogień (Pomarańcz)
+                    case 211: kolor = sf::Color(0, 191, 255); break;  // Diament (Niebieski)
+                    case 212: kolor = sf::Color(255, 223, 0); break;  // Gwiazda (Złoto)
+                    case 213: kolor = sf::Color(178, 34, 34); break;  // Cel (Ciemna czerwień)
+                    case 214: kolor = sf::Color(218, 165, 32); break; // Korona (Stare złoto)
+                    case 215: kolor = sf::Color(255, 105, 180); break;// Skarbonka (Różowy)
+                    case 216: kolor = sf::Color(34, 139, 34); break;  // Inwestycja (Ciemna zieleń)
+                    case 217: kolor = sf::Color(192, 192, 192); break;// Szkło (Jasnoszary)
+                }
+
+                sf::CircleShape kropka(promienKropki);
+                kropka.setFillColor(kolor);
+                kropka.setOrigin(promienKropki, promienKropki);
+                kropka.setOutlineThickness(0.5f);
+                kropka.setOutlineColor(sf::Color(0,0,0, 150));
+
+                float kat = (i * (360.0f / ilosc)) * 3.14159f / 180.0f;
+
+                // POPRAWKA: Używamy getPosition() zamiast shape.getPosition()
+                float x = getPosition().x + std::cos(kat) * odlegloscOdSrodka;
+                float y = getPosition().y + std::sin(kat) * odlegloscOdSrodka;
+
+                kropka.setPosition(x, y);
+                target.draw(kropka);
+            }
+        }
+    }
+}
 void BilardBall::kolizjeDziur(const sf::Time& elapsed, std::vector<std::unique_ptr<GameObject>>& entities, float tarcieScianGlobal, float tarcieStoluGlobal) {
     for (auto& obj : entities) {
         // MAGIA! Sprawdzamy, czy ten obiekt to Dziura

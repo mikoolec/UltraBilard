@@ -44,6 +44,22 @@ ShopMenu::ShopMenu(std::pair<int,int> res) {
         tooltipPrice.setFont(font); tooltipPrice.setCharacterSize(12); tooltipPrice.setFillColor(sf::Color::Green);
     }
 
+    if (texKijSklep.loadFromFile("assets//kij.png")) {
+        texKijSklep.setSmooth(false);
+        sprKijSklep.setTexture(texKijSklep);
+        sf::FloatRect bounds = sprKijSklep.getLocalBounds();
+        sprKijSklep.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+        // Skala 0.45f żeby kij zmieścił się idealnie w poziomie na szerokość karty
+        sprKijSklep.setScale(0.45f, 0.45f);
+    }
+
+    // Ustawienie grafiki bili do sklepu
+    sprBilaSklep.setRadius(16.f);
+    sprBilaSklep.setOrigin(16.f, 16.f);
+    sprBilaSklep.setFillColor(sf::Color(180, 180, 180)); // Szary kolor jak bazowe bile
+    sprBilaSklep.setOutlineThickness(2.f);
+    sprBilaSklep.setOutlineColor(sf::Color(80, 80, 80)); // Ciemniejsza obwódka
+
     // Pływające okienko tło
     tooltipBg.setFillColor(sf::Color(0, 0, 0, 220));
     tooltipBg.setOutlineThickness(2);
@@ -554,9 +570,23 @@ void ShopMenu::draw(sf::RenderTexture& target) {
         target.draw(sprDrewnoSrodek);
         target.draw(titleText); target.draw(inventoryText);
 
-        // Rysowanie boxów kupowania (nasze grafiki!)
-        for(auto& btn : cueButtons) target.draw(btn.sprite);
-        for(auto& btn : ballButtons) target.draw(btn.sprite);
+        // rysowanie kijow
+        for(auto& btn : cueButtons) {
+            target.draw(btn.sprite);
+
+            // Kij trafia idealnie na sam środek przycisku
+            sprKijSklep.setPosition(btn.sprite.getPosition());
+            target.draw(sprKijSklep);
+        }
+
+        // rysowanie bil
+        for(auto& btn : ballButtons) {
+            target.draw(btn.sprite);
+
+            // Bila trafia idealnie na sam środek przycisku
+            sprBilaSklep.setPosition(btn.sprite.getPosition());
+            target.draw(sprBilaSklep);
+        }
 
         // Rysowanie środka
         target.draw(sprKijSrodek);
@@ -581,7 +611,6 @@ void ShopMenu::draw(sf::RenderTexture& target) {
         target.draw(tooltipDesc);
         if (!tooltipPrice.getString().isEmpty()) target.draw(tooltipPrice);
     }
-
 }
 
 

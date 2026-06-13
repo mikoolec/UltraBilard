@@ -26,13 +26,13 @@ static std::vector<Upgrade> PelnaBazaUlepszen = {
     {110,"Kij Ryzyka", "+50% punktow w rundzie\n3 strzaly na runde", 5, 0},
     {111,"Kij Chaosu", "25% szansy na podwojne monety uderzajac z maksymalna sila", 5, 0},
     {112,"Kij Szczescia", "10% na potrojne punkty\n10% szans na wyzerowanie punktow z rundy", 5, 0},
-    {113,"Drewniany Kij", "+100% punktow w rundzie\n5% szans na zlamanie kija i przegranie gry", 5, 0},
+    {113,"Drewniany Kij", "+100% punktow w rundzie\n5% szans na zlamanie kija i przegranie", 5, 0},
     {114,"Kij Faulujacy", "20% szans na +10 monet przy wbiciu bialej bili", 5, 0},
     {115,"Kij Wampira", "+1 strzal za kazda wbita bile", 5, 0},
     {116,"Kij Ducha", "0,5s przenikania bialej bili przez inne bile", 5, 0},
     // Bile (rodzaj 1)
-    {201,"Kowadlo", "+10% wielkosci bili\n+10% masy bili", 5, 1},
-    {202,"Balon", "-10% wielkosci bili\n-10% masy bili", 5, 1},
+    {201,"Kowadlo", "+10% masy bili", 5, 1},
+    {202,"Balon", "-10% masy bili", 5, 1},
     {203,"Kamien", "Biala bila zatrzymuje sie po zderzeniu", 5, 1},
     {204,"Bomba", "Przy pierwszym uderzeniu w bile, odpycha pobliskie bile", 5, 1},
     {205,"Sprezyna", "+10% odbicia od bandy", 5, 1},
@@ -47,7 +47,7 @@ static std::vector<Upgrade> PelnaBazaUlepszen = {
     {214,"Korona", "+10 monet za wbicie bili", 5, 1},
     {215,"Skarbonka", "+5 monet za uderzenie w bile", 5, 1},
     {216,"Inwestycja", "0 punktow za wbicie bili\n2x wszystkie zarobione monety w rundzie", 5, 1},
-    {217,"Szkło", "3x posiadane punkty w rundzie\n25% szansa na pekniecie i utrate bili", 5, 1},
+    {217,"Szklo", "3x posiadane punkty w rundzie\n25% szansa na pekniecie i utrate bili", 5, 1},
 };
 
 #endif // UPGRADES_H
