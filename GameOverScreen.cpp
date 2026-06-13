@@ -13,10 +13,8 @@ GameOverScreen::GameOverScreen(std::pair<int,int> res) {
     loadAndSetup(texPanel, sprPanel, "assets//GO_tlo.png");
     loadAndSetup(texTitle, sprTitle, "assets//GO_GO.png");
     loadAndSetup(texLine, sprLine, "assets//GO_prosta.png");
-    loadAndSetup(texCoinIcon, sprCoinIcon, "assets//monetka.png");
 
     loadAndSetup(texLabelScore, sprLabelScore, "assets//GO_zdobyte_punkty.png");
-    loadAndSetup(texLabelCoins, sprLabelCoins, "assets//GO_zebrane_monety.png");
     loadAndSetup(texLabelRounds, sprLabelRounds, "assets//GO_rundy.png");
     loadAndSetup(texLabelBiles, sprLabelBiles, "assets//GO_wbite_bile.png");
     loadAndSetup(texLabelShots, sprLabelShots, "assets//GO_ilosc_strzalow.png");
@@ -33,9 +31,8 @@ GameOverScreen::GameOverScreen(std::pair<int,int> res) {
     sf::FloatRect lb = sprLine.getLocalBounds(); sprLine.setOrigin(lb.width/2.0f, lb.height/2.0f); sprLine.setPosition(center.x, center.y - 110);
 
     float statsLeftX = center.x - 130; float statsValueX = center.x + 40;
-    sprLabelScore.setPosition(statsLeftX, center.y - 80);
-    sprLabelCoins.setPosition(statsLeftX, center.y - 50);
-    sprLabelRounds.setPosition(statsLeftX, center.y - 20);
+    sprLabelScore.setPosition(statsLeftX, center.y - 70);
+    sprLabelRounds.setPosition(statsLeftX, center.y - 30);
     sprLabelBiles.setPosition(statsLeftX, center.y + 10);
     sprLabelShots.setPosition(statsLeftX, center.y + 40);
 
@@ -47,13 +44,11 @@ GameOverScreen::GameOverScreen(std::pair<int,int> res) {
 
     if (font.loadFromFile("assets//PublicPixel.ttf")) {
         valScore.setFont(font); valScore.setCharacterSize(16); valScore.setFillColor(sf::Color::White);
-        valCoins.setFont(font); valCoins.setCharacterSize(16); valCoins.setFillColor(sf::Color::White);
         valRounds.setFont(font); valRounds.setCharacterSize(16); valRounds.setFillColor(sf::Color::White);
         valBiles.setFont(font); valBiles.setCharacterSize(16); valBiles.setFillColor(sf::Color::White);
         valShots.setFont(font); valShots.setCharacterSize(16); valShots.setFillColor(sf::Color::White);
 
         valScore.setPosition(statsValueX, sprLabelScore.getPosition().y - 3);
-        valCoins.setPosition(statsValueX, sprLabelCoins.getPosition().y - 3);
         valRounds.setPosition(statsValueX, sprLabelRounds.getPosition().y - 3);
         valBiles.setPosition(statsValueX, sprLabelBiles.getPosition().y - 3);
         valShots.setPosition(statsValueX, sprLabelShots.getPosition().y - 3);
@@ -62,7 +57,6 @@ GameOverScreen::GameOverScreen(std::pair<int,int> res) {
 
 void GameOverScreen::updateStats(const GameStats& stats) {
     valScore.setString(std::to_string(stats.punktyGlobalnie));
-    valCoins.setString(std::to_string(stats.monetyGlobalnie));
     valRounds.setString(std::to_string(stats.rundy));
     valBiles.setString(std::to_string(stats.wbiteBileGlobalnie));
     valShots.setString(std::to_string(stats.strzalyGlobalnie));
@@ -73,8 +67,7 @@ void GameOverScreen::updateStats(const GameStats& stats) {
         text.setOrigin(bounds.left+bounds.width,0);
         text.setPosition(rightEdgeX,text.getPosition().y);
     };
-    alignTextRight(valScore); alignTextRight(valCoins); alignTextRight(valRounds); alignTextRight(valBiles); alignTextRight(valShots);
-    sprCoinIcon.setPosition(rightEdgeX+10.0f,valCoins.getPosition().y+2.0f);
+    alignTextRight(valScore); ; alignTextRight(valRounds); alignTextRight(valBiles); alignTextRight(valShots);
 }
 
 void GameOverScreen::updateHover(sf::Vector2f mousePos) {
@@ -93,7 +86,7 @@ int GameOverScreen::handleClick(sf::Vector2f mousePos) {
 
 void GameOverScreen::draw(sf::RenderTexture& target) {
     target.draw(bgFilter); target.draw(sprPanel); target.draw(sprTitle); target.draw(sprLine);
-    target.draw(sprLabelScore); target.draw(sprLabelCoins); target.draw(sprCoinIcon); target.draw(sprLabelRounds); target.draw(sprLabelBiles); target.draw(sprLabelShots);
-    target.draw(valScore); target.draw(valCoins); target.draw(valRounds); target.draw(valBiles); target.draw(valShots);
+    target.draw(sprLabelScore); target.draw(sprLabelRounds); target.draw(sprLabelBiles); target.draw(sprLabelShots);
+    target.draw(valScore); target.draw(valRounds); target.draw(valBiles); target.draw(valShots);
     target.draw(sprBtnRetry); target.draw(sprBtnMenu);
 }

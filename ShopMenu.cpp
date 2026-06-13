@@ -38,6 +38,17 @@ ShopMenu::ShopMenu(std::pair<int,int> res) {
         inventoryText.setOrigin(ib.left + ib.width/2.0f, ib.top + ib.height/2.0f);
         inventoryText.setPosition(res.first/2.0f, 90);
 
+        // monety
+        textMonety.setFont(font);
+        textMonety.setCharacterSize(14);
+        textMonety.setFillColor(sf::Color::Yellow);
+        // Ustawiamy w lewym górnym rogu ekranu
+        textMonety.setPosition(20.f, 20.f);
+
+        textKosztRefresha.setFont(font);
+        textKosztRefresha.setCharacterSize(10);
+        textKosztRefresha.setFillColor(sf::Color::Yellow);
+
         // Ustawienia pływającego okienka
         tooltipName.setFont(font); tooltipName.setCharacterSize(12); tooltipName.setFillColor(sf::Color::Yellow);
         tooltipDesc.setFont(font); tooltipDesc.setCharacterSize(10); tooltipDesc.setFillColor(sf::Color::White);
@@ -95,6 +106,8 @@ ShopMenu::ShopMenu(std::pair<int,int> res) {
         sprBtnNext.setOrigin(texBtnNextNorm.getSize().x / 2.0f, texBtnNextNorm.getSize().y / 2.0f);
         sprBtnNext.setPosition(res.first/2.0f, res.second - 40);
     }
+
+
 
     OdswiezPrzedmioty();
 
@@ -566,6 +579,9 @@ int ShopMenu::handleClick(sf::Vector2f mousePos)
 void ShopMenu::draw(sf::RenderTexture& target) {
     target.draw(sprTloCegly);
 
+    textMonety.setString("Monety: " + std::to_string(g_Stats.monety));
+    target.draw(textMonety);
+
     if (currentSubState == SHOP_MAIN) {
         target.draw(sprDrewnoSrodek);
         target.draw(titleText); target.draw(inventoryText);
@@ -580,8 +596,32 @@ void ShopMenu::draw(sf::RenderTexture& target) {
         }
 
         // rysowanie bil
+        // rysowanie bil
         for(auto& btn : ballButtons) {
             target.draw(btn.sprite);
+
+            // Dynamiczna zmiana koloru na podstawie ID ulepszenia (identyczne kolory jak kropeczki na stole)
+            sf::Color kolorBili(180, 180, 180); // domyślny szary, gdyby coś poszło nie tak
+            switch (btn.id) {
+                case 201: kolorBili = sf::Color(80, 80, 80); break;   // Kowadlo
+                case 202: kolorBili = sf::Color(135, 206, 235); break; // Balon
+                case 203: kolorBili = sf::Color(139, 69, 19); break;  // Kamien
+                case 204: kolorBili = sf::Color(220, 20, 60); break;  // Bomba
+                case 205: kolorBili = sf::Color(50, 205, 50); break;  // Sprezyna
+                case 206: kolorBili = sf::Color(0, 255, 255); break;  // Lód
+                case 207: kolorBili = sf::Color(255, 215, 0); break;  // Klej
+                case 208: kolorBili = sf::Color(138, 43, 226); break; // Magnes
+                case 209: kolorBili = sf::Color(255, 255, 255); break;// Duch
+                case 210: kolorBili = sf::Color(255, 140, 0); break;  // Ogień
+                case 211: kolorBili = sf::Color(0, 191, 255); break;  // Diament
+                case 212: kolorBili = sf::Color(255, 223, 0); break;  // Gwiazda
+                case 213: kolorBili = sf::Color(178, 34, 34); break;  // Cel
+                case 214: kolorBili = sf::Color(218, 165, 32); break; // Korona
+                case 215: kolorBili = sf::Color(255, 105, 180); break;// Skarbonka
+                case 216: kolorBili = sf::Color(34, 139, 34); break;  // Inwestycja
+                case 217: kolorBili = sf::Color(192, 192, 192); break;// Szkło
+            }
+            sprBilaSklep.setFillColor(kolorBili);
 
             // Bila trafia idealnie na sam środek przycisku
             sprBilaSklep.setPosition(btn.sprite.getPosition());
@@ -590,10 +630,24 @@ void ShopMenu::draw(sf::RenderTexture& target) {
 
         // Rysowanie środka
         target.draw(sprKijSrodek);
+
+        // --- Rysowanie kija na środkowym panelu "Twój Kij" ---
+        sprKijSklep.setPosition(sprKijSrodek.getPosition());
+        target.draw(sprKijSklep);
+
         target.draw(sprTrojkatSrodek);
 
         target.draw(sprBtnNext);
         target.draw(sprBtnRefresh);
+
+        // koszt reroll
+        textKosztRefresha.setString("-" + std::to_string(kosztRefresha));
+        sf::FloatRect kr = textKosztRefresha.getLocalBounds();
+        textKosztRefresha.setOrigin(kr.left + kr.width / 2.0f, kr.top + kr.height / 2.0f);
+
+        // Ustawiamy tekst lekko po prawej stronie od przycisku odświeżania
+        textKosztRefresha.setPosition(sprBtnRefresh.getPosition().x + 70.f, sprBtnRefresh.getPosition().y);
+        target.draw(textKosztRefresha);
     }
     else if (currentSubState == SHOP_BALL_INVENTORY) {
         // Widok inwentarza bil

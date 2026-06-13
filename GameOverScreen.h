@@ -8,16 +8,16 @@
 class GameOverScreen : public MenuScreen {
 private:
     sf::RectangleShape bgFilter;
-    sf::Texture texPanel,texTitle,texLine,texCoinIcon;
-    sf::Texture texLabelScore, texLabelCoins, texLabelRounds, texLabelBiles, texLabelShots;
+    sf::Texture texPanel,texTitle,texLine;
+    sf::Texture texLabelScore, texLabelRounds, texLabelBiles, texLabelShots;
     sf::Texture texBtnRetryNorm, texBtnRetryHov, texBtnMenuNorm, texBtnMenuHov;
 
-    sf::Sprite sprPanel,sprTitle,sprLine,sprCoinIcon;
-    sf::Sprite sprLabelScore, sprLabelCoins, sprLabelRounds, sprLabelBiles, sprLabelShots;
+    sf::Sprite sprPanel,sprTitle,sprLine;
+    sf::Sprite sprLabelScore, sprLabelRounds, sprLabelBiles, sprLabelShots;
     sf::Sprite sprBtnRetry, sprBtnMenu;
 
     sf::Font font;
-    sf::Text valScore, valCoins, valRounds, valBiles, valShots;
+    sf::Text valScore, valRounds, valBiles, valShots;
 
     void loadAndSetup(sf::Texture& tex, sf::Sprite& spr, std::string path);
 public:
