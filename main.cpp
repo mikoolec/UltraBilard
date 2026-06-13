@@ -137,7 +137,7 @@ void resetCalejRozgrywki(std::vector<std::unique_ptr<GameObject>>& entities, con
 {
     resetBoard(entities, MiejscaX, MiejscaY, shots);
     g_Stats.punktyGlobalnie = 0;
-    g_Stats.monety = 1000; // test
+    g_Stats.monety = 10;
     g_Stats.monetyGlobalnie = 0;
     g_Stats.rundy = 1;
     g_Stats.wbiteBileGlobalnie = 0;
@@ -241,7 +241,7 @@ int main()
     float silaStrzalu = 1;
     float tarcieStoluGlobal = 1;
     float tarcieScianGlobal = 1;
-    int maxStrzaly = 5;
+    int maxStrzaly = 4;
     bool widocznoscCelu = true;
 
     // Zmienne do działania
@@ -610,7 +610,7 @@ int main()
                                         }
 
                                         // 217: Szkło (25% szans na zniszczenie)
-                                        if (maSzklo && (rand() % 100 < 25)) {
+                                        if (maSzklo && (rand() % 100 < 15)) {
                                             bal->Put = true; // Bila natychmiast pęka i znika!
                                             std::cout << "Trzask! Szklo (bila " << bal->identifier << ") peklo od uderzenia!" << std::endl;
                                         }
@@ -708,8 +708,9 @@ int main()
                                         diff(bal->getPosition(), hol->getPosition()) < bal->getRadius() + hol->getRadius())
                                     {
                                         bal->ballPut();
+                                        g_Stats.punktyTejRundy += 3;
                                         // upgrade kijow 103 i 104
-                                        float bazoweMonety = 10.0f; // Tyle gracz dostaje za zwykłą bilę (możesz zmienić)
+                                        float bazoweMonety = 10.0f; // Tyle gracz dostaje za zwykłą bilę
                                         float mnoznikMonet = 1.0f;
 
                                         if (g_Stats.czyPosiada(103)) mnoznikMonet += 0.20f; // Zloty grawerunek

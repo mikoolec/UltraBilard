@@ -580,8 +580,32 @@ void ShopMenu::draw(sf::RenderTexture& target) {
         }
 
         // rysowanie bil
+        // rysowanie bil
         for(auto& btn : ballButtons) {
             target.draw(btn.sprite);
+
+            // Dynamiczna zmiana koloru na podstawie ID ulepszenia (identyczne kolory jak kropeczki na stole)
+            sf::Color kolorBili(180, 180, 180); // domyślny szary, gdyby coś poszło nie tak
+            switch (btn.id) {
+                case 201: kolorBili = sf::Color(80, 80, 80); break;   // Kowadlo
+                case 202: kolorBili = sf::Color(135, 206, 235); break; // Balon
+                case 203: kolorBili = sf::Color(139, 69, 19); break;  // Kamien
+                case 204: kolorBili = sf::Color(220, 20, 60); break;  // Bomba
+                case 205: kolorBili = sf::Color(50, 205, 50); break;  // Sprezyna
+                case 206: kolorBili = sf::Color(0, 255, 255); break;  // Lód
+                case 207: kolorBili = sf::Color(255, 215, 0); break;  // Klej
+                case 208: kolorBili = sf::Color(138, 43, 226); break; // Magnes
+                case 209: kolorBili = sf::Color(255, 255, 255); break;// Duch
+                case 210: kolorBili = sf::Color(255, 140, 0); break;  // Ogień
+                case 211: kolorBili = sf::Color(0, 191, 255); break;  // Diament
+                case 212: kolorBili = sf::Color(255, 223, 0); break;  // Gwiazda
+                case 213: kolorBili = sf::Color(178, 34, 34); break;  // Cel
+                case 214: kolorBili = sf::Color(218, 165, 32); break; // Korona
+                case 215: kolorBili = sf::Color(255, 105, 180); break;// Skarbonka
+                case 216: kolorBili = sf::Color(34, 139, 34); break;  // Inwestycja
+                case 217: kolorBili = sf::Color(192, 192, 192); break;// Szkło
+            }
+            sprBilaSklep.setFillColor(kolorBili);
 
             // Bila trafia idealnie na sam środek przycisku
             sprBilaSklep.setPosition(btn.sprite.getPosition());
@@ -590,6 +614,11 @@ void ShopMenu::draw(sf::RenderTexture& target) {
 
         // Rysowanie środka
         target.draw(sprKijSrodek);
+
+        // --- Rysowanie kija na środkowym panelu "Twój Kij" ---
+        sprKijSklep.setPosition(sprKijSrodek.getPosition());
+        target.draw(sprKijSklep);
+
         target.draw(sprTrojkatSrodek);
 
         target.draw(sprBtnNext);

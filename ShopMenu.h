@@ -83,7 +83,7 @@ private:
     ShopButton* hoveredItem = nullptr;
 
     // Refresh button
-    int kosztRefresha = 10;
+    int kosztRefresha = 30;
 
     ShopButton* pendingBallUpgrade = nullptr;
 
